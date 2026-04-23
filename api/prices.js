@@ -1,7 +1,7 @@
-// Vercel serverless function: oil price proxy.
-// Yahoo Finance API + Yahoo HTML scrape (less rate-limited) + Stooq.
-// Returns { last, change, changePct, prevClose, series } where series may be empty if only HTML scrape worked.
+// Vercel serverless function: oil price proxy with CNBC primary + fallbacks.
+// CNBC's public quote endpoint isn't IP-rate-limited the way Yahoo and Stooq are.
 
+const CNBC_SYMBOL = { "BZ=F": "@LCO.1", "CL=F": "@CL.1" }; // CNBC continuous futures codes
 const STOOQ_TICKER = { "BZ=F": "cb.f", "CL=F": "cl.f" };
 
 const BROWSER_HEADERS = {
@@ -9,6 +9,53 @@ const BROWSER_HEADERS = {
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
   "Accept-Language": "en-US,en;q=0.9",
 };
+
+async function tryCnbc(symbol, diag) {
+  const cnbcSym = CNBC_SYMBOL[symbol];
+  if (!cnbcSym) return null;
+  const url =
+    `https://quote.cnbc.com/quote-html-webservice/restQuote/symbolType/symbol?symbols=${encodeURIComponent(
+      cnbcSym
+    )}&requestMethod=extended&noform=1&fund=2&exthrs=0&output=json`;
+  try {
+    const r = await fetch(url, {
+      headers: { ...BROWSER_HEADERS, Accept: "application/json,*/*", Referer: "https://www.cnbc.com/" },
+    });
+    diag.push({ src: "cnbc", status: r.status });
+    if (!r.ok) return null;
+    const data = await r.json();
+    const q = data?.FormattedQuoteResult?.FormattedQuote?.[0];
+    if (!q) {
+      diag.push({ src: "cnbc", note: "no quote in response" });
+      return null;
+    }
+    const last = parseFloat(q.last);
+    const prevClose = parseFloat(q.previous_day_closing ?? q.previousClosePrice ?? q.last);
+    const change = q.change != null ? parseFloat(q.change) : (isFinite(last - prevClose) ? last - prevClose : 0);
+    const changePct = q.change_pct != null ? parseFloat(q.change_pct) : (prevClose ? (change / prevClose) * 100 : 0);
+    const marketTime = q.last_time ? Date.parse(q.last_time) : Date.now();
+    if (!isFinite(last)) {
+      diag.push({ src: "cnbc", note: "last not finite", q: JSON.stringify(q).slice(0, 300) });
+      return null;
+    }
+    return {
+      source: "cnbc",
+      symbol,
+      currency: q.currencyCode || "USD",
+      last,
+      prevClose: isFinite(prevClose) ? prevClose : null,
+      change,
+      changePct,
+      marketTime: isFinite(marketTime) ? marketTime : Date.now(),
+      range: "1d",
+      interval: "snapshot",
+      series: [],
+    };
+  } catch (e) {
+    diag.push({ src: "cnbc", err: String(e) });
+    return null;
+  }
+}
 
 async function tryYahooApi(symbol, range, interval, diag) {
   const hosts = ["query1.finance.yahoo.com", "query2.finance.yahoo.com"];
@@ -55,122 +102,9 @@ async function tryYahooApi(symbol, range, interval, diag) {
   return null;
 }
 
-async function tryYahooHtml(symbol, diag) {
-  const url = `https://finance.yahoo.com/quote/${encodeURIComponent(symbol)}/`;
-  try {
-    const r = await fetch(url, {
-      headers: {
-        ...BROWSER_HEADERS,
-        Accept: "text/html,application/xhtml+xml",
-      },
-    });
-    diag.push({ src: "yahoo-html", status: r.status });
-    if (!r.ok) return null;
-    const html = await r.text();
-    diag.push({ src: "yahoo-html", htmlLen: html.length });
-    // Yahoo's quote page mentions many tickers (related, trending). Scope our regex to the
-    // block right after the symbol identifier so we extract THIS ticker's prices, not someone else's.
-    const symIdx = html.indexOf(`"symbol":"${symbol}"`);
-    if (symIdx < 0) {
-      // Without finding the symbol marker we can't trust prices to belong to this ticker,
-      // so bail. Yahoo's layout sometimes serves a generic page or detects bots.
-      diag.push({ src: "yahoo-html", note: "symbol not found in HTML; abandoning scrape" });
-      return null;
-    }
-    const scope = html.slice(symIdx, symIdx + 8000);
-    diag.push({ src: "yahoo-html", symIdx, scopeLen: scope.length });
-    const priceMatch = scope.match(/"regularMarketPrice":\s*\{?\s*"raw":\s*(-?[\d.]+)/);
-    const prevMatch = scope.match(/"regularMarketPreviousClose":\s*\{?\s*"raw":\s*(-?[\d.]+)/);
-    const chgMatch = scope.match(/"regularMarketChange":\s*\{?\s*"raw":\s*(-?[\d.]+)/);
-    const chgPctMatch = scope.match(/"regularMarketChangePercent":\s*\{?\s*"raw":\s*(-?[\d.]+)/);
-    const timeMatch = scope.match(/"regularMarketTime":\s*\{?\s*"raw":\s*(\d+)/);
-    const currencyMatch = scope.match(/"currency":\s*"([A-Z]{3})"/);
-    if (!priceMatch) {
-      diag.push({ src: "yahoo-html", note: "no price match", first: html.slice(0, 200) });
-      return null;
-    }
-    const last = parseFloat(priceMatch[1]);
-    const prevClose = prevMatch ? parseFloat(prevMatch[1]) : null;
-    const change = chgMatch ? parseFloat(chgMatch[1]) : (prevClose != null ? last - prevClose : null);
-    const changePct = chgPctMatch ? parseFloat(chgPctMatch[1]) : (prevClose ? (change / prevClose) * 100 : null);
-    const marketTime = timeMatch ? parseInt(timeMatch[1], 10) * 1000 : Date.now();
-    return {
-      source: "yahoo-html",
-      symbol,
-      currency: currencyMatch ? currencyMatch[1] : "USD",
-      last,
-      prevClose,
-      change,
-      changePct,
-      marketTime,
-      range: "1d",
-      interval: "snapshot",
-      series: [], // no historical series from HTML scrape
-    };
-  } catch (e) {
-    diag.push({ src: "yahoo-html", err: String(e) });
-    return null;
-  }
-}
-
-function parseStooqHistory(csv) {
-  const lines = csv.trim().split(/\r?\n/);
-  if (lines.length < 2) return [];
-  const out = [];
-  for (let i = 1; i < lines.length; i++) {
-    const cols = lines[i].split(",");
-    if (cols.length < 5) continue;
-    const t = Date.parse(cols[0] + "T16:30:00Z");
-    const c = parseFloat(cols[4]);
-    if (!isFinite(t) || !isFinite(c)) continue;
-    out.push({ t, c });
-  }
-  return out;
-}
-
-async function tryStooq(symbol, range, diag) {
-  const t = STOOQ_TICKER[symbol];
-  if (!t) return null;
-  const url = `https://stooq.com/q/d/l/?s=${t}&i=d`;
-  try {
-    const r = await fetch(url, {
-      headers: { ...BROWSER_HEADERS, Accept: "text/csv,*/*", Referer: "https://stooq.com/" },
-    });
-    const text = await r.text();
-    diag.push({ src: "stooq", status: r.status, len: text.length });
-    if (!r.ok || !text.length) return null;
-    const all = parseStooqHistory(text);
-    if (!all.length) return null;
-    const days = range === "1d" ? 5 : range === "5d" ? 10 : range === "1mo" ? 35 : 35;
-    const cutoff = Date.now() - days * 86400000;
-    let series = all.filter((p) => p.t >= cutoff);
-    if (!series.length) series = all.slice(-5);
-    const last = series[series.length - 1].c;
-    const prevClose = series.length >= 2 ? series[series.length - 2].c : last;
-    const change = last - prevClose;
-    const changePct = prevClose ? (change / prevClose) * 100 : 0;
-    return {
-      source: "stooq",
-      symbol,
-      currency: "USD",
-      last,
-      prevClose,
-      change,
-      changePct,
-      marketTime: series[series.length - 1].t,
-      range,
-      interval: "1d",
-      series,
-    };
-  } catch (e) {
-    diag.push({ src: "stooq", err: String(e) });
-    return null;
-  }
-}
-
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Cache-Control", "public, s-maxage=120, stale-while-revalidate=600");
+  res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
 
   const symbol = (req.query.symbol || "BZ=F").toString();
   const range = (req.query.range || "1d").toString();
@@ -184,24 +118,19 @@ export default async function handler(req, res) {
 
   const diag = [];
 
-  // Run Yahoo API + Yahoo HTML in parallel for speed; combine results.
-  const [api, html, stooq] = await Promise.all([
-    tryYahooApi(symbol, range, interval, diag),
-    tryYahooHtml(symbol, diag),
-    tryStooq(symbol, range, diag),
-  ]);
+  // CNBC first (simplest and most reliable when it works).
+  const cnbc = await tryCnbc(symbol, diag);
+  if (cnbc && cnbc.last != null) {
+    if (debug) cnbc.diag = diag;
+    res.status(200).json(cnbc);
+    return;
+  }
 
-  // Pick best result. API has chart series + price. HTML has price only. Stooq has daily history.
-  let result =
-    (api && api.last != null && api.series.length) ? api :
-    (stooq && stooq.last != null) ? { ...stooq, source: stooq.source + (html?.last != null ? "+yahoo-html" : ""), last: html?.last ?? stooq.last, change: html?.change ?? stooq.change, changePct: html?.changePct ?? stooq.changePct, prevClose: html?.prevClose ?? stooq.prevClose } :
-    (html && html.last != null) ? html :
-    (api && api.last != null) ? api :
-    null;
-
-  if (result && result.last != null) {
-    if (debug) result.diag = diag;
-    res.status(200).json(result);
+  // Yahoo fallback (gives us chart series when it isn't rate-limited).
+  const yahoo = await tryYahooApi(symbol, range, interval, diag);
+  if (yahoo && yahoo.last != null) {
+    if (debug) yahoo.diag = diag;
+    res.status(200).json(yahoo);
     return;
   }
 
