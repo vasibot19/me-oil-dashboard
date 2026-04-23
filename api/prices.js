@@ -13,6 +13,14 @@ const BROWSER_HEADERS = {
   "Accept-Language": "en-US,en;q=0.9",
 };
 
+// Strip thousands separators before parseFloat. CNBC's "FormattedQuote" returns
+// numbers as strings like "4,131.50" which parseFloat would truncate to 4.
+function num(v) {
+  if (v == null) return NaN;
+  if (typeof v === "number") return v;
+  return parseFloat(String(v).replace(/,/g, ""));
+}
+
 async function tryCnbc(symbol, diag) {
   const cnbcSym = CNBC_SYMBOL[symbol];
   if (!cnbcSym) return null;
@@ -29,10 +37,10 @@ async function tryCnbc(symbol, diag) {
     const data = await r.json();
     const q = data?.FormattedQuoteResult?.FormattedQuote?.[0];
     if (!q) return null;
-    const last = parseFloat(q.last);
-    const prevClose = parseFloat(q.previous_day_closing ?? q.previousClosePrice ?? q.last);
-    const change = q.change != null ? parseFloat(q.change) : (isFinite(last - prevClose) ? last - prevClose : 0);
-    const changePct = q.change_pct != null ? parseFloat(q.change_pct) : (prevClose ? (change / prevClose) * 100 : 0);
+    const last = num(q.last);
+    const prevClose = num(q.previous_day_closing ?? q.previousClosePrice ?? q.last);
+    const change = q.change != null ? num(q.change) : (isFinite(last - prevClose) ? last - prevClose : 0);
+    const changePct = q.change_pct != null ? num(q.change_pct) : (prevClose ? (change / prevClose) * 100 : 0);
     const marketTime = q.last_time ? Date.parse(q.last_time) : Date.now();
     if (!isFinite(last)) return null;
     return {
