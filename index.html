@@ -175,6 +175,15 @@
   .impact.i3 { background: var(--imp-3); color: #1a1a1a; }
   .impact.i4 { background: var(--imp-4); }
   .impact.i5 { background: var(--imp-5); }
+  .move {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 10px; padding: 2px 7px; border-radius: 999px;
+    font-weight: 700; font-variant-numeric: tabular-nums;
+    border: 1px solid var(--border);
+  }
+  .move.up { background: rgba(34,197,94,0.16); color: var(--up); border-color: rgba(34,197,94,0.4); }
+  .move.down { background: rgba(239,68,68,0.16); color: var(--down); border-color: rgba(239,68,68,0.4); }
+  .move.flat { color: var(--muted); }
   .item h3 { font-size: 14px; font-weight: 500; margin: 0; line-height: 1.35; }
   .item:active h3 { opacity: 0.7; }
 
@@ -272,7 +281,7 @@
 
   <footer>
     Prices refresh every 10&nbsp;sec · news every 60&nbsp;sec · live tape rolls 60&nbsp;min · breaking band keeps items 24&nbsp;h.<br/>
-    Data: CNBC quote API, Google News. Impact 1–5 ranks expected oil-price influence.
+    Data: CNBC quote API, Google News. Impact 1–5 ranks expected oil-price influence; ± estimates direction (bullish/bearish) and median size.
   </footer>
 </div>
 
@@ -551,6 +560,15 @@
     }
     el("breakingTitle").textContent = cleanTitle(it);
     el("breakingCount").textContent = (idx + 1) + "/" + state.breakingItems.length;
+    // Show direction/pct in band too if we have it
+    const dir = it.expectedDirection || 0;
+    const pct = it.expectedPct || 0;
+    const ago = el("breakingAgo");
+    if (dir !== 0 && pct > 0) {
+      const sign = dir > 0 ? "+" : "−";
+      const color = dir > 0 ? "var(--up)" : "var(--down)";
+      ago.innerHTML = ago.textContent + ` <span style="color:${color};font-weight:700">${sign}${pct.toFixed(1)}% oil</span>`;
+    }
   }
 
   el("breakingPrev")?.addEventListener("click", (e) => {
@@ -615,11 +633,19 @@
       const ago = timeAgo(item.pubDate);
       const score = item.impactScore || 0;
       const impactBadge = score >= 1
-        ? `<span class="impact i${score}" title="Oil-impact score">${score}/5</span>`
+        ? `<span class="impact i${score}" title="Oil-impact score (1-5)">${score}/5</span>`
         : "";
       const trumpBadge = item.isTrump ? '<span class="tag trump">Trump</span>' : "";
       const cat = item.category || "reposted";
       const catBadge = `<span class="cat ${cat}">${cat}</span>`;
+      const dir = item.expectedDirection || 0;
+      const pct = item.expectedPct || 0;
+      let moveBadge = "";
+      if (dir !== 0 && pct > 0) {
+        const cls = dir > 0 ? "up" : "down";
+        const sign = dir > 0 ? "+" : "−";
+        moveBadge = `<span class="move ${cls}" title="Expected oil-price move">${sign}${pct.toFixed(1)}%</span>`;
+      }
       a.innerHTML = `
         <div class="top">
           <span class="src">${escapeHtml(src)}</span>
@@ -627,6 +653,7 @@
           ${catBadge}
           ${trumpBadge}
           ${impactBadge}
+          ${moveBadge}
         </div>
         <h3>${escapeHtml(cleanTitle(item))}</h3>`;
       list.appendChild(a);
