@@ -71,7 +71,13 @@ async function tryYahooHtml(symbol, diag) {
     // Yahoo's quote page mentions many tickers (related, trending). Scope our regex to the
     // block right after the symbol identifier so we extract THIS ticker's prices, not someone else's.
     const symIdx = html.indexOf(`"symbol":"${symbol}"`);
-    const scope = symIdx >= 0 ? html.slice(symIdx, symIdx + 8000) : html;
+    if (symIdx < 0) {
+      // Without finding the symbol marker we can't trust prices to belong to this ticker,
+      // so bail. Yahoo's layout sometimes serves a generic page or detects bots.
+      diag.push({ src: "yahoo-html", note: "symbol not found in HTML; abandoning scrape" });
+      return null;
+    }
+    const scope = html.slice(symIdx, symIdx + 8000);
     diag.push({ src: "yahoo-html", symIdx, scopeLen: scope.length });
     const priceMatch = scope.match(/"regularMarketPrice":\s*\{?\s*"raw":\s*(-?[\d.]+)/);
     const prevMatch = scope.match(/"regularMarketPreviousClose":\s*\{?\s*"raw":\s*(-?[\d.]+)/);
