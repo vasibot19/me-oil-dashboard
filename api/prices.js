@@ -3,11 +3,12 @@
 
 const STOOQ_TICKER = { "BZ=F": "cb.f", "CL=F": "cl.f" };
 
+// Note: do NOT set Accept-Encoding; Node fetch doesn't auto-decompress brotli,
+// and Stooq returns 200 + empty body when negotiation fails.
 const BROWSER_HEADERS = {
   "User-Agent":
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
   "Accept-Language": "en-US,en;q=0.9",
-  "Accept-Encoding": "gzip, deflate, br",
 };
 
 async function tryYahoo(symbol, range, interval, diag) {
@@ -76,6 +77,7 @@ async function tryStooq(symbol, range, diag) {
   const urls = [
     `https://stooq.com/q/d/l/?s=${t}&i=d`,
     `https://stooq.com/q/d/l/?s=${t}&i=d&d1=20240101&d2=20990101`,
+    `https://stooq.com/q/d/l/?i=d&s=${t}`,
   ];
   for (const url of urls) {
     try {
