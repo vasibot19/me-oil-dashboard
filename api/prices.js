@@ -68,14 +68,17 @@ async function tryYahooHtml(symbol, diag) {
     if (!r.ok) return null;
     const html = await r.text();
     diag.push({ src: "yahoo-html", htmlLen: html.length });
-    // Look for embedded price markers. Yahoo embeds the price in multiple places.
-    // Pattern 1: "regularMarketPrice":{"raw":76.42,...}
-    const priceMatch = html.match(/"regularMarketPrice":\s*\{?\s*"raw":\s*([\d.]+)/);
-    const prevMatch = html.match(/"regularMarketPreviousClose":\s*\{?\s*"raw":\s*([\d.]+)/);
-    const chgMatch = html.match(/"regularMarketChange":\s*\{?\s*"raw":\s*(-?[\d.]+)/);
-    const chgPctMatch = html.match(/"regularMarketChangePercent":\s*\{?\s*"raw":\s*(-?[\d.]+)/);
-    const timeMatch = html.match(/"regularMarketTime":\s*\{?\s*"raw":\s*(\d+)/);
-    const currencyMatch = html.match(/"currency":\s*"([A-Z]{3})"/);
+    // Yahoo's quote page mentions many tickers (related, trending). Scope our regex to the
+    // block right after the symbol identifier so we extract THIS ticker's prices, not someone else's.
+    const symIdx = html.indexOf(`"symbol":"${symbol}"`);
+    const scope = symIdx >= 0 ? html.slice(symIdx, symIdx + 8000) : html;
+    diag.push({ src: "yahoo-html", symIdx, scopeLen: scope.length });
+    const priceMatch = scope.match(/"regularMarketPrice":\s*\{?\s*"raw":\s*(-?[\d.]+)/);
+    const prevMatch = scope.match(/"regularMarketPreviousClose":\s*\{?\s*"raw":\s*(-?[\d.]+)/);
+    const chgMatch = scope.match(/"regularMarketChange":\s*\{?\s*"raw":\s*(-?[\d.]+)/);
+    const chgPctMatch = scope.match(/"regularMarketChangePercent":\s*\{?\s*"raw":\s*(-?[\d.]+)/);
+    const timeMatch = scope.match(/"regularMarketTime":\s*\{?\s*"raw":\s*(\d+)/);
+    const currencyMatch = scope.match(/"currency":\s*"([A-Z]{3})"/);
     if (!priceMatch) {
       diag.push({ src: "yahoo-html", note: "no price match", first: html.slice(0, 200) });
       return null;
