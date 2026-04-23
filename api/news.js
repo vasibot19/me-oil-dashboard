@@ -44,22 +44,30 @@ function parseRss(xml) {
 
 async function fetchGoogleNews(q) {
   const url = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-US&gl=US&ceid=US:en`;
-  const r = await fetch(url, {
-    headers: {
-      "User-Agent":
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
-      Accept: "application/rss+xml,application/xml;q=0.9,*/*;q=0.8",
-    },
-  });
-  if (!r.ok) throw new Error(`google news ${r.status}`);
-  return parseRss(await r.text());
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), RSS_TIMEOUT_MS);
+  try {
+    const r = await fetch(url, {
+      signal: ctrl.signal,
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+        Accept: "application/rss+xml,application/xml;q=0.9,*/*;q=0.8",
+      },
+    });
+    if (!r.ok) throw new Error(`google news ${r.status}`);
+    return parseRss(await r.text());
+  } finally {
+    clearTimeout(t);
+  }
 }
 
 // ----------------- Gemini scoring -----------------
 
-// Try newer model first (more generous free-tier quota), fall back to 2.0 if it's not available.
-const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash"];
-const GEMINI_BATCH_LIMIT = 50; // Score at most 50 (newest) items per request to stay within free-tier quotas.
+const GEMINI_MODELS = ["gemini-2.5-flash"];
+const GEMINI_BATCH_LIMIT = 25;        // newest N items get model-scored; rest use fallback
+const GEMINI_TIMEOUT_MS = 9000;       // bail Gemini after 9s so the function still responds in 15s
+const RSS_TIMEOUT_MS = 4500;          // each Google News fetch capped at 4.5s
 
 function buildPrompt(items) {
   const lines = items.map((it, i) => {
@@ -95,9 +103,12 @@ async function callGemini(model, items, apiKey, diag) {
     contents: [{ parts: [{ text: buildPrompt(items) }] }],
     generationConfig: { responseMimeType: "application/json", temperature: 0.2 },
   };
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), GEMINI_TIMEOUT_MS);
   try {
     const r = await fetch(url, {
       method: "POST",
+      signal: ctrl.signal,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
@@ -123,6 +134,8 @@ async function callGemini(model, items, apiKey, diag) {
   } catch (e) {
     diag.push({ src: "gemini", model, err: String(e) });
     return { ok: false, status: 0 };
+  } finally {
+    clearTimeout(t);
   }
 }
 
