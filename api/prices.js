@@ -1,10 +1,22 @@
-// Vercel serverless function: oil + gold price proxy via CNBC public quote API.
-// CNBC symbols: @LCO.1 (Brent), @CL.1 (WTI), @GC.1 (COMEX Gold ~ XAUUSD).
+// Vercel serverless function: live quote proxy via CNBC's public quote API.
+// Maps our internal ticker keys to CNBC symbols. CNBC isn't IP-rate-limited
+// from Vercel datacenters the way Yahoo is.
 
 const CNBC_SYMBOL = {
-  "BZ=F": "@LCO.1",
-  "CL=F": "@CL.1",
-  "GC=F": "@GC.1",  // Gold front-month, closest free proxy for XAUUSD spot
+  // Oil & gold — primary focus
+  "BZ=F":     "@LCO.1",   // Brent crude continuous
+  "CL=F":     "@CL.1",    // WTI crude continuous
+  "GC=F":     "@GC.1",    // COMEX gold ~ XAUUSD spot
+  // Oil-focused ETFs
+  "BNO":      "BNO",      // United States Brent Oil Fund (ETF)
+  "USO":      "USO",      // United States Oil Fund (ETF, WTI)
+  // Macro
+  "EURUSD=X": "EUR=",     // EUR/USD spot
+  "NDX":      ".NDX",     // NASDAQ 100 index
+  "VIX":      ".VIX",     // CBOE volatility index
+  // Other
+  "BWET":     "BWET",     // Breakwave Dry Bulk Shipping ETF
+  "BTC-USD":  "BTC.CB=",  // Bitcoin / USD spot (Coinbase)
 };
 
 const BROWSER_HEADERS = {
@@ -32,7 +44,7 @@ async function tryCnbc(symbol, diag) {
     const r = await fetch(url, {
       headers: { ...BROWSER_HEADERS, Accept: "application/json,*/*", Referer: "https://www.cnbc.com/" },
     });
-    diag.push({ src: "cnbc", status: r.status });
+    diag.push({ src: "cnbc", status: r.status, sym: cnbcSym });
     if (!r.ok) return null;
     const data = await r.json();
     const q = data?.FormattedQuoteResult?.FormattedQuote?.[0];
@@ -46,6 +58,7 @@ async function tryCnbc(symbol, diag) {
     return {
       source: "cnbc",
       symbol,
+      cnbcSymbol: cnbcSym,
       currency: q.currencyCode || "USD",
       last,
       prevClose: isFinite(prevClose) ? prevClose : null,
@@ -57,7 +70,7 @@ async function tryCnbc(symbol, diag) {
       series: [],
     };
   } catch (e) {
-    diag.push({ src: "cnbc", err: String(e) });
+    diag.push({ src: "cnbc", err: String(e), sym: cnbcSym });
     return null;
   }
 }
@@ -70,7 +83,7 @@ export default async function handler(req, res) {
   const debug = "debug" in req.query;
 
   if (!CNBC_SYMBOL[symbol]) {
-    res.status(400).json({ error: "symbol not allowed" });
+    res.status(400).json({ error: "symbol not allowed", allowed: Object.keys(CNBC_SYMBOL) });
     return;
   }
 
