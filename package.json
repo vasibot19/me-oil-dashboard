@@ -1,0 +1,10 @@
+{
+  "name": "me-oil-dashboard",
+  "version": "1.0.0",
+  "description": "Middle East situation + live Brent/WTI oil price dashboard.",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  }
+}
