@@ -252,11 +252,16 @@
 
   <section class="card chart-card">
     <div class="chart-head">
-      <div class="title" id="chartTitle">Brent · live tape</div>
+      <div class="title" id="chartTitle">Brent · 1h tape</div>
       <div class="toggles">
         <button data-sym="BZ=F" class="active">Brent</button>
         <button data-sym="CL=F">WTI</button>
         <button data-sym="GC=F">Gold</button>
+        <span style="width:8px"></span>
+        <button data-range="1h" class="active">1H</button>
+        <button data-range="1d">1D</button>
+        <button data-range="5d">5D</button>
+        <button data-range="1mo">1M</button>
       </div>
     </div>
     <div class="chart-wrap">
@@ -304,6 +309,7 @@
 
   const state = {
     selectedSymbol: "BZ=F",
+    selectedRange: "1h",
     newsFilter: "all",
     prices: { "BZ=F": null, "CL=F": null, "GC=F": null },
     chart: null,
@@ -311,7 +317,11 @@
     breakingItems: [],
     breakingIdx: 0,
     breakingTimer: null,
+    history: null,           // parsed /data/history.json
+    historyFetchedAt: 0,
   };
+
+  const HISTORY_TTL_MS = 5 * 60 * 1000; // cache history fetch for 5 min
 
   const el = (id) => document.getElementById(id);
   const fmt = (n, d = 2) => (n == null || !isFinite(n) ? "—" : n.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d }));
@@ -434,23 +444,59 @@
         safeRenderChart();
       });
     });
+    document.querySelectorAll(".toggles button[data-range]").forEach((b) => {
+      b.addEventListener("click", async () => {
+        document.querySelectorAll(".toggles button[data-range]").forEach((x) => x.classList.remove("active"));
+        b.classList.add("active");
+        state.selectedRange = b.dataset.range;
+        if (state.selectedRange !== "1h") await ensureHistory();
+        safeRenderChart();
+      });
+    });
   }
   function symLabel(sym) {
     return sym === "BZ=F" ? "Brent" : sym === "CL=F" ? "WTI" : "Gold";
   }
+  function rangeLabel(r) {
+    return r === "1h" ? "1h tape" : r === "1d" ? "1 day" : r === "5d" ? "5 days" : "1 month";
+  }
+  async function ensureHistory() {
+    const now = Date.now();
+    if (state.history && now - state.historyFetchedAt < HISTORY_TTL_MS) return state.history;
+    try {
+      const r = await fetch("/data/history.json?_=" + now);
+      if (!r.ok) throw new Error("history http " + r.status);
+      state.history = await r.json();
+      state.historyFetchedAt = now;
+    } catch (e) {
+      console.error("history fetch failed", e);
+    }
+    return state.history;
+  }
+  function getChartSeries(sym, range) {
+    if (range === "1h") {
+      return loadTape(sym).map((p) => ({ x: p.t, y: p.c }));
+    }
+    const s = state.history?.symbols?.[sym]?.ranges?.[range];
+    if (!s?.length) return [];
+    return s.map((p) => ({ x: p.t, y: p.c }));
+  }
   function renderChart() {
     const sym = state.selectedSymbol;
-    el("chartTitle").textContent = symLabel(sym) + " · live tape";
-    const tape = loadTape(sym);
+    const range = state.selectedRange;
+    el("chartTitle").textContent = symLabel(sym) + " · " + rangeLabel(range);
+    const points = getChartSeries(sym, range);
     const empty = el("chartEmpty");
-    if (!tape.length) {
+    if (!points.length) {
+      empty.textContent = range === "1h"
+        ? "Building live tape… each tick = 10s."
+        : "No history yet — GitHub Action runs every 15 min, first refresh due shortly.";
       empty.style.display = "flex";
       if (state.chart) { state.chart.destroy(); state.chart = null; }
       return;
     }
     empty.style.display = "none";
 
-    const points = tape.map((p) => ({ x: p.t, y: p.c }));
     const first = points[0].y, last = points[points.length - 1].y;
     const up = last >= first;
     const color = up ? "#22c55e" : "#ef4444";
@@ -471,13 +517,25 @@
             titleColor: "#8b98a9", bodyColor: "#e6edf3",
             borderColor: "#1f2937", borderWidth: 1,
             callbacks: {
-              title: (items) => new Date(items[0].parsed.x).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+              title: (items) => {
+                const d = new Date(items[0].parsed.x);
+                return range === "1mo"
+                  ? d.toLocaleDateString([], { month: "short", day: "numeric" })
+                  : range === "1h"
+                  ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+                  : d.toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+              },
               label: (item) => "$" + item.parsed.y.toFixed(2),
             },
           },
         },
         scales: {
-          x: { type: "time", time: { displayFormats: { minute: "HH:mm", hour: "HH:mm" } }, grid: { display: false }, ticks: { color: "#8b98a9", maxRotation: 0, autoSkip: true, maxTicksLimit: 5, font: { size: 10 } } },
+          x: {
+            type: "time",
+            time: { displayFormats: { minute: "HH:mm", hour: "HH:mm", day: "MMM d", week: "MMM d" } },
+            grid: { display: false },
+            ticks: { color: "#8b98a9", maxRotation: 0, autoSkip: true, maxTicksLimit: 5, font: { size: 10 } },
+          },
           y: { grid: { color: "rgba(139,152,169,0.08)" }, ticks: { color: "#8b98a9", font: { size: 10 } }, position: "right" },
         },
       },
@@ -665,13 +723,16 @@
     setupFilterToggles();
     setStatus("wait", "loading…");
     safeRenderChart();
-    await Promise.all([fetchPrices(), fetchNews()]);
+    await Promise.all([fetchPrices(), fetchNews(), ensureHistory()]);
     setInterval(fetchPrices, PRICE_INTERVAL);
     setInterval(fetchNews, NEWS_INTERVAL);
+    // Refresh history every 5 min (picks up the Action's latest push)
+    setInterval(() => { ensureHistory().then(() => { if (state.selectedRange !== "1h") safeRenderChart(); }); }, 5 * 60 * 1000);
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden) {
         fetchPrices();
         fetchNews();
+        if (state.selectedRange !== "1h") ensureHistory().then(() => safeRenderChart());
       }
     });
   }
