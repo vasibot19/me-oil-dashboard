@@ -59,6 +59,55 @@ const BREAKING_MARKERS = [
   "live:", "alert:", "(updated)", "happening now",
 ];
 
+// Bullish (price up) signals: supply shock, escalation, sanctions ON, OPEC cuts.
+const BULLISH_KEYWORDS = [
+  // supply / infrastructure hits
+  "hormuz closed", "hormuz blocked", "hormuz shut",
+  "refinery attack", "refinery strike", "refinery fire", "refinery hit", "refinery shut",
+  "pipeline attack", "pipeline blast", "pipeline halt", "pipeline closed", "pipeline strike",
+  "tanker attack", "tanker hit", "tanker seized", "tanker burning", "tanker on fire",
+  "saudi aramco attack", "aramco attack",
+  "supply disruption", "supply shock", "production halt", "production halted",
+  "shipping disruption", "shipping lane closed", "red sea attack",
+  "oil price spike", "oil price jump", "oil price surge", "oil prices surge", "oil prices jump",
+  // escalation / strikes
+  "iran strike", "iran attack", "strikes iran", "strike on iran",
+  "israel strike iran", "israel attacks iran", "israeli strikes",
+  "houthi attack", "houthi missile", "houthi drone", "houthi strike",
+  "us strikes iran", "trump strikes iran", "trump bombs",
+  "war escalation", "escalation in", "escalates",
+  "drone strike on", "missile strike on",
+  // sanctions ADDED (cuts supply)
+  "new sanctions", "sanctions on iran oil", "sanctions on russian oil",
+  "oil embargo", "embargo on oil", "sanctions imposed", "tightens sanctions",
+  // OPEC cuts
+  "opec cut", "opec+ cut", "production cut", "supply cut", "output cut",
+  // hoarding / panic
+  "stockpiled", "hoarding oil", "rush to buy",
+];
+
+// Bearish (price down) signals: de-escalation, deal/peace, OPEC increase, sanctions lifted.
+const BEARISH_KEYWORDS = [
+  "ceasefire reached", "ceasefire holds", "truce reached", "peace deal",
+  "nuclear deal reached", "deal reached", "agreement signed",
+  "sanctions lifted", "sanctions eased", "embargo lifted", "lift sanctions",
+  "opec increase", "opec+ increase", "production increase", "supply increase", "boost production",
+  "de-escalation", "tensions ease", "tensions easing",
+  "oil demand falls", "recession fears", "demand destruction",
+  "oversupply", "oil glut", "glut",
+  "iran agrees", "israel withdraws", "talks resume", "diplomatic breakthrough",
+  "trump pushes ceasefire", "trump brokers", "trump deal",
+];
+
+// Patterns that flip a bearish-looking phrase back to bullish (or vice versa)
+const FLIP_PATTERNS = [
+  /no ceasefire/i,
+  /ceasefire (?:collapses|broken|breaks|fails|expires|rejected)/i,
+  /(?:rejects|refuses|walks out of) (?:talks|deal|ceasefire)/i,
+  /deal (?:fails|collapses|rejected)/i,
+  /sanctions (?:imposed|tightened|reinstated)/i,
+];
+
 function decodeEntities(s) {
   if (!s) return "";
   return s
@@ -124,12 +173,39 @@ function classify(item, score) {
   const titleHasBreaking = BREAKING_MARKERS.some((m) => t.includes(m));
   const ageMs = Date.now() - (Date.parse(item.pubDate) || Date.now());
   const ageMin = ageMs / 60000;
-  // Breaking: explicit marker, OR <30 min old + impact ≥ 3
   if (titleHasBreaking) return "breaking";
   if (ageMin <= 30 && score >= 3) return "breaking";
-  // Developing: <6h old + impact ≥ 2
   if (ageMin <= 360 && score >= 2) return "developing";
   return "reposted";
+}
+
+// Direction & magnitude estimate. Returns { direction: -1|0|+1, expectedPct: number }.
+// expectedPct is a rough median percentage we'd expect oil to move on this kind of news,
+// scaled by impact score. Direction comes from bullish/bearish keyword count + flip patterns.
+function estimateImpact(item, score) {
+  const text = (item.title + " " + item.description).toLowerCase();
+  let bullish = 0, bearish = 0;
+  for (const k of BULLISH_KEYWORDS) if (text.includes(k)) bullish++;
+  for (const k of BEARISH_KEYWORDS) if (text.includes(k)) bearish++;
+  // Flip patterns turn an apparently-bearish item bullish (e.g. "ceasefire collapses")
+  for (const re of FLIP_PATTERNS) {
+    if (re.test(text)) { bullish += 2; bearish = Math.max(0, bearish - 2); }
+  }
+  let direction = 0;
+  if (bullish > bearish) direction = 1;
+  else if (bearish > bullish) direction = -1;
+  // Median % move expectation, scaled by magnitude bucket.
+  const magBase = score === 0 ? 0
+    : score === 1 ? 0.2
+    : score === 2 ? 0.5
+    : score === 3 ? 1.2
+    : score === 4 ? 2.5
+    : 5.0;
+  // If we have no direction signal but score >= 3, mark direction as +1 (geopolitical
+  // escalation in ME defaults bullish for oil) — common case for unflagged escalation news.
+  if (direction === 0 && score >= 3) direction = 1;
+  const expectedPct = magBase * (direction === 0 ? 0 : 1);
+  return { direction, expectedPct: Math.round(expectedPct * 10) / 10 };
 }
 
 export default async function handler(req, res) {
@@ -159,6 +235,9 @@ export default async function handler(req, res) {
       };
       merged.category = classify(merged, merged.impactScore);
       merged.isBreaking = merged.category === "breaking";
+      const impact = estimateImpact(merged, merged.impactScore);
+      merged.expectedDirection = impact.direction; // -1 | 0 | +1
+      merged.expectedPct = impact.expectedPct;     // e.g. 1.2 (means ~+1.2%)
       byLink.set(item.link, merged);
     }
 
