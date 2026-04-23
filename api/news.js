@@ -1,7 +1,10 @@
 // Vercel serverless function: pulls Google News RSS, parses, returns JSON.
-// Two query buckets (general ME, oil-focused). Each item gets:
-//   - oilImpact: bool (was the item flagged as oil-relevant)
-//   - impactScore: 1..5 (how much we'd expect this to move oil prices)
+// Three query buckets: general ME, oil-focused, Trump-on-ME.
+// Each item gets:
+//   - oilImpact: bool
+//   - impactScore: 1..5 (oil-price influence)
+//   - category: "breaking" | "developing" | "reposted"
+//   - isBreaking: bool (item should appear in the live band)
 
 const GENERAL_QUERY =
   '(Iran OR Israel OR "Middle East") AND (conflict OR strike OR attack OR sanctions OR ceasefire OR escalation OR "nuclear talks")';
@@ -9,104 +12,52 @@ const GENERAL_QUERY =
 const OIL_QUERY =
   '(oil OR crude OR Brent OR WTI OR OPEC OR "Strait of Hormuz" OR refinery OR tanker OR pipeline OR embargo) AND (Iran OR Israel OR "Middle East" OR Saudi OR "Persian Gulf" OR Houthi)';
 
-// Oil-impact keyword tiers. Each bullet contributes to the score.
+// Trump query: anything Trump says/does that touches Middle East / oil
+const TRUMP_QUERY =
+  'Trump AND (Iran OR Israel OR "Middle East" OR oil OR Saudi OR Hormuz OR sanctions OR Netanyahu OR OPEC OR "nuclear deal" OR ceasefire OR Houthi)';
+
 const IMPACT_KEYWORDS = {
-  // weight 3: directly disrupts supply or named action on oil infrastructure
   high: [
-    "strait of hormuz",
-    "hormuz",
-    "opec cut",
-    "opec+ cut",
-    "production cut",
-    "production halt",
-    "production halted",
-    "supply disruption",
-    "supply shock",
-    "refinery attack",
-    "refinery strike",
-    "refinery fire",
-    "refinery hit",
-    "refinery shut",
-    "pipeline attack",
-    "pipeline blast",
-    "pipeline strike",
-    "pipeline halt",
-    "pipeline closed",
+    "strait of hormuz", "hormuz",
+    "opec cut", "opec+ cut", "production cut", "production halt", "production halted",
+    "supply disruption", "supply shock",
+    "refinery attack", "refinery strike", "refinery fire", "refinery hit", "refinery shut",
+    "pipeline attack", "pipeline blast", "pipeline strike", "pipeline halt", "pipeline closed",
     "saudi aramco",
-    "oil export ban",
-    "oil embargo",
-    "embargo on oil",
-    "tanker attack",
-    "tanker hit",
-    "tanker seized",
-    "tanker burning",
-    "tanker on fire",
-    "oil price spike",
-    "oil price jump",
-    "oil price surge",
-    "oil prices surge",
-    "oil prices jump",
-    "red sea shipping",
-    "shipping lane closed",
-    "shipping disruption",
+    "oil export ban", "oil embargo", "embargo on oil",
+    "tanker attack", "tanker hit", "tanker seized", "tanker burning", "tanker on fire",
+    "oil price spike", "oil price jump", "oil price surge", "oil prices surge", "oil prices jump",
+    "red sea shipping", "shipping lane closed", "shipping disruption",
+    "trump sanctions iran", "trump strikes iran", "trump tariffs oil",
   ],
-  // weight 2: military/diplomatic action involving oil-producing region
   medium: [
-    "iran attack",
-    "iran strike",
-    "iranian forces",
-    "iran nuclear",
-    "israel strike",
-    "israel attack",
-    "israeli forces",
-    "houthi attack",
-    "houthi missile",
-    "houthi drone",
-    "saudi attack",
-    "saudi strike",
-    "iraq attack",
-    "iraqi forces",
-    "ceasefire",
-    "escalation",
-    "missile strike",
-    "drone strike",
-    "drone attack",
-    "embargo",
-    "sanctions",
-    "oil sanctions",
-    "crude oil",
-    "brent crude",
-    "wti crude",
-    "saudi arabia",
-    "oil tanker",
-    "oil shipping",
-    "fuel shock",
-    "energy crisis",
-    "war fuel",
+    "iran attack", "iran strike", "iranian forces", "iran nuclear",
+    "israel strike", "israel attack", "israeli forces",
+    "houthi attack", "houthi missile", "houthi drone",
+    "saudi attack", "saudi strike",
+    "iraq attack", "iraqi forces",
+    "ceasefire", "escalation", "missile strike", "drone strike", "drone attack",
+    "embargo", "sanctions", "oil sanctions",
+    "crude oil", "brent crude", "wti crude",
+    "saudi arabia", "oil tanker", "oil shipping",
+    "fuel shock", "energy crisis", "war fuel",
+    "trump iran", "trump israel", "trump oil", "trump saudi", "trump opec",
+    "white house iran", "white house israel", "us strikes",
   ],
-  // weight 1: background mentions
   low: [
-    "iran",
-    "israel",
-    "saudi",
-    "houthi",
-    "iraq",
-    "lebanon",
-    "syria",
-    "yemen",
-    "oil",
-    "crude",
-    "brent",
-    "wti",
-    "opec",
-    "barrel",
-    "middle east",
-    "persian gulf",
-    "gulf",
-    "energy market",
-    "fuel",
+    "iran", "israel", "saudi", "houthi", "iraq", "lebanon", "syria", "yemen",
+    "oil", "crude", "brent", "wti", "opec", "barrel",
+    "middle east", "persian gulf", "gulf",
+    "energy market", "fuel",
+    "trump", "white house", "pentagon",
   ],
 };
+
+// Words / phrases that flag a news item as breaking news (urgency)
+const BREAKING_MARKERS = [
+  "breaking", "developing", "urgent", "just in", "live updates",
+  "live:", "alert:", "(updated)", "happening now",
+];
 
 function decodeEntities(s) {
   if (!s) return "";
@@ -121,10 +72,7 @@ function decodeEntities(s) {
     .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)))
     .replace(/&#x([0-9a-fA-F]+);/g, (_, n) => String.fromCharCode(parseInt(n, 16)));
 }
-
-function stripTags(s) {
-  return decodeEntities(s).replace(/<[^>]+>/g, "").trim();
-}
+function stripTags(s) { return decodeEntities(s).replace(/<[^>]+>/g, "").trim(); }
 
 function parseRss(xml) {
   const items = [];
@@ -154,8 +102,7 @@ async function fetchGoogleNews(q) {
     },
   });
   if (!r.ok) throw new Error(`google news ${r.status}`);
-  const xml = await r.text();
-  return parseRss(xml);
+  return parseRss(await r.text());
 }
 
 function scoreImpact(text) {
@@ -164,7 +111,6 @@ function scoreImpact(text) {
   for (const k of IMPACT_KEYWORDS.high) if (t.includes(k)) score += 3;
   for (const k of IMPACT_KEYWORDS.medium) if (t.includes(k)) score += 2;
   for (const k of IMPACT_KEYWORDS.low) if (t.includes(k)) score += 1;
-  // Map raw score → 1..5 bucket. 0 means no oil signal at all.
   if (score === 0) return 0;
   if (score <= 2) return 1;
   if (score <= 4) return 2;
@@ -173,52 +119,63 @@ function scoreImpact(text) {
   return 5;
 }
 
+function classify(item, score) {
+  const t = (item.title + " " + item.description).toLowerCase();
+  const titleHasBreaking = BREAKING_MARKERS.some((m) => t.includes(m));
+  const ageMs = Date.now() - (Date.parse(item.pubDate) || Date.now());
+  const ageMin = ageMs / 60000;
+  // Breaking: explicit marker, OR <30 min old + impact ≥ 3
+  if (titleHasBreaking) return "breaking";
+  if (ageMin <= 30 && score >= 3) return "breaking";
+  // Developing: <6h old + impact ≥ 2
+  if (ageMin <= 360 && score >= 2) return "developing";
+  return "reposted";
+}
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  // Cezar wants ~1-min freshness; cache 30s at edge for some buffer.
   res.setHeader("Cache-Control", "public, s-maxage=30, stale-while-revalidate=120");
 
   try {
-    const [general, oil] = await Promise.all([
-      fetchGoogleNews(GENERAL_QUERY).catch((e) => {
-        console.error("general feed failed", e);
-        return [];
-      }),
-      fetchGoogleNews(OIL_QUERY).catch((e) => {
-        console.error("oil feed failed", e);
-        return [];
-      }),
+    const [general, oil, trump] = await Promise.all([
+      fetchGoogleNews(GENERAL_QUERY).catch((e) => { console.error("general", e); return []; }),
+      fetchGoogleNews(OIL_QUERY).catch((e) => { console.error("oil", e); return []; }),
+      fetchGoogleNews(TRUMP_QUERY).catch((e) => { console.error("trump", e); return []; }),
     ]);
 
     const byLink = new Map();
-    for (const item of general) {
+
+    function add(item, opts = {}) {
       const text = item.title + " " + item.description;
-      const score = scoreImpact(text);
-      byLink.set(item.link, { ...item, oilImpact: score >= 1, impactScore: score });
-    }
-    for (const item of oil) {
-      const text = item.title + " " + item.description;
-      const score = Math.max(scoreImpact(text), 1); // oil-query items always at least 1
+      const baseScore = scoreImpact(text);
+      // Trump bucket boosts score by +1 (Trump statements move oil)
+      const score = Math.min(5, Math.max(opts.minScore || 0, baseScore + (opts.trump ? 1 : 0)));
       const prev = byLink.get(item.link);
-      byLink.set(item.link, {
+      const merged = {
         ...(prev || item),
-        oilImpact: true,
+        oilImpact: prev?.oilImpact || score >= 1 || opts.oil,
         impactScore: Math.max(prev?.impactScore || 0, score),
-      });
+        isTrump: prev?.isTrump || !!opts.trump,
+      };
+      merged.category = classify(merged, merged.impactScore);
+      merged.isBreaking = merged.category === "breaking";
+      byLink.set(item.link, merged);
     }
+
+    for (const item of general) add(item);
+    for (const item of oil)     add(item, { oil: true, minScore: 1 });
+    for (const item of trump)   add(item, { trump: true, minScore: 1 });
 
     const items = Array.from(byLink.values());
 
-    items.sort((a, b) => {
-      const ta = Date.parse(a.pubDate) || 0;
-      const tb = Date.parse(b.pubDate) || 0;
-      return tb - ta;
-    });
+    // Sort newest first
+    items.sort((a, b) => (Date.parse(b.pubDate) || 0) - (Date.parse(a.pubDate) || 0));
 
     res.status(200).json({
       updated: Date.now(),
       count: items.length,
-      items: items.slice(0, 80),
+      breakingCount: items.filter((i) => i.isBreaking).length,
+      items: items.slice(0, 100),
     });
   } catch (err) {
     res.status(500).json({ error: String(err) });
