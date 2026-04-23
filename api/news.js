@@ -64,16 +64,18 @@ async function fetchGoogleNews(q) {
 
 // ----------------- Gemini scoring -----------------
 
-const GEMINI_MODELS = ["gemini-2.5-flash"];
-const GEMINI_BATCH_LIMIT = 25;        // newest N items get model-scored; rest use fallback
-const GEMINI_TIMEOUT_MS = 9000;       // bail Gemini after 9s so the function still responds in 15s
-const RSS_TIMEOUT_MS = 4500;          // each Google News fetch capped at 4.5s
+// Lite is dramatically faster than full Flash for short structured outputs like ours.
+const GEMINI_MODELS = ["gemini-2.5-flash-lite", "gemini-2.5-flash"];
+const GEMINI_BATCH_LIMIT = 20;        // newest N items get model-scored; rest use fallback
+const GEMINI_TIMEOUT_MS = 12000;      // bail Gemini after 12s so the function still responds in 15s
+const RSS_TIMEOUT_MS = 3500;          // each Google News fetch capped at 3.5s
 
 function buildPrompt(items) {
+  // Keep the prompt tight — short headlines = fewer output tokens = faster response
   const lines = items.map((it, i) => {
     const ageMin = Math.round((Date.now() - (Date.parse(it.pubDate) || Date.now())) / 60000);
-    const src = (it.source || (it.title.match(/\s-\s([^-]+)$/)?.[1] || "")).trim();
-    return `[${i}] (${ageMin}m ago) ${src ? src + ": " : ""}${it.title}`;
+    const t = (it.title || "").slice(0, 200);
+    return `[${i}|${ageMin}m] ${t}`;
   }).join("\n");
   return `You are an oil markets analyst covering Brent and WTI crude.
 
