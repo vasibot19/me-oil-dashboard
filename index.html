@@ -26,9 +26,7 @@
     --imp-3: #f59e0b;
     --imp-4: #f97316;
     --imp-5: #ef4444;
-    --breaking-bg: rgba(239,68,68,0.12);
     --breaking-border: rgba(239,68,68,0.5);
-    --breaking-fg: #fca5a5;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
@@ -67,17 +65,12 @@
     width: 6px; height: 6px; border-radius: 50%; background: white;
     animation: pulse 1.4s ease-in-out infinite;
   }
-  @keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50%      { opacity: 0.45; transform: scale(0.7); }
-  }
+  @keyframes pulse { 0%,100% {opacity:1;transform:scale(1);} 50% {opacity:.45;transform:scale(.7);} }
   .breaking-band a {
     flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;
     color: inherit; text-decoration: none;
   }
-  .breaking-band .top {
-    font-size: 10px; color: var(--muted); display: flex; gap: 6px; align-items: center;
-  }
+  .breaking-band .top { font-size: 10px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
   .breaking-band .src { font-weight: 600; color: var(--text); opacity: 0.85; }
   .breaking-band .title-line {
     font-size: 13px; line-height: 1.3; color: var(--text);
@@ -93,20 +86,35 @@
     font-size: 12px; line-height: 1;
   }
 
-  .prices { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  /* Markets */
+  .group { margin-bottom: 12px; }
+  .group h3 {
+    font-size: 10px; color: var(--muted); margin: 0 4px 6px;
+    text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600;
+  }
+  .group h3.gold { color: var(--gold); }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
   .card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 12px 12px 10px; }
-  .card .label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  .card .label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
   .card .price { font-size: 22px; font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
   .card .chg { font-size: 12px; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .card.hero .price { font-size: 24px; }
   .card.gold .label { color: var(--gold); }
+  .card.compact { padding: 10px 10px 8px; }
+  .card.compact .price { font-size: 18px; }
+  .card.compact .label { font-size: 9px; }
+  .card.compact .chg { font-size: 11px; }
+
   .chg.up { color: var(--up); }
   .chg.down { color: var(--down); }
   .chg.flat { color: var(--muted); }
 
-  .chart-card { padding: 12px 10px 8px; }
-  .chart-head { display: flex; justify-content: space-between; align-items: center; padding: 2px 4px 8px; }
+  .chart-card { padding: 12px 10px 8px; margin-top: 4px; }
+  .chart-head { display: flex; justify-content: space-between; align-items: center; padding: 2px 4px 8px; flex-wrap: wrap; gap: 6px; }
   .chart-head .title { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
-  .toggles { display: flex; gap: 6px; }
+  .toggles { display: flex; gap: 6px; flex-wrap: wrap; }
   .toggles button {
     background: transparent; color: var(--muted);
     border: 1px solid var(--border); border-radius: 999px;
@@ -133,11 +141,23 @@
     text-transform: none; letter-spacing: 0;
   }
   .news .filter button.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .muted-banner {
+    margin: 0 4px 8px; padding: 8px 10px;
+    background: rgba(139,152,169,0.06); border: 1px dashed var(--border); border-radius: 10px;
+    font-size: 11px; color: var(--muted); display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+  }
+  .muted-banner[hidden] { display: none; }
+  .muted-banner button {
+    background: transparent; color: var(--muted); border: 1px solid var(--border);
+    border-radius: 999px; padding: 2px 7px; font-size: 10px; cursor: pointer;
+  }
+  .muted-banner button:hover { color: var(--text); }
   .item {
     display: block; padding: 12px 14px;
     border: 1px solid var(--border); border-radius: 12px;
     background: var(--panel); margin-bottom: 8px;
     text-decoration: none; color: inherit;
+    position: relative;
   }
   .item.oil {
     background: linear-gradient(180deg, rgba(242,178,51,0.05), transparent 60%), var(--panel);
@@ -149,6 +169,13 @@
     font-size: 11px; color: var(--muted); flex-wrap: wrap;
   }
   .item .src { font-weight: 600; color: var(--text); opacity: 0.85; }
+  .item .mute-btn {
+    margin-left: auto;
+    background: transparent; color: var(--muted); border: 1px solid var(--border);
+    border-radius: 6px; padding: 1px 6px; font-size: 10px; cursor: pointer;
+    line-height: 1.4;
+  }
+  .item .mute-btn:hover { color: var(--text); border-color: var(--muted); }
   .tag {
     font-size: 10px; padding: 2px 7px; border-radius: 999px;
     border: 1px solid var(--tag-oil-border); background: var(--tag-oil-bg); color: var(--tag-oil-fg);
@@ -183,7 +210,6 @@
   }
   .move.up { background: rgba(34,197,94,0.16); color: var(--up); border-color: rgba(34,197,94,0.4); }
   .move.down { background: rgba(239,68,68,0.16); color: var(--down); border-color: rgba(239,68,68,0.4); }
-  .move.flat { color: var(--muted); }
   .item h3 { font-size: 14px; font-weight: 500; margin: 0; line-height: 1.35; }
   .item:active h3 { opacity: 0.7; }
 
@@ -191,12 +217,11 @@
     padding: 20px; text-align: center; color: var(--muted);
     border: 1px dashed var(--border); border-radius: 12px;
   }
-
   footer { margin-top: 22px; text-align: center; color: var(--muted); font-size: 11px; line-height: 1.4; }
 
   @media (max-width: 480px) {
-    .card .price { font-size: 18px; }
-    .card .label { font-size: 9px; }
+    .card.hero .price { font-size: 20px; }
+    .card.compact .price { font-size: 16px; }
     .breaking-band .title-line { font-size: 12px; }
   }
 </style>
@@ -206,7 +231,7 @@
   <header>
     <div>
       <h1>Middle East × Oil</h1>
-      <div class="sub">Brent · WTI · Gold · live · ME news</div>
+      <div class="sub">Oil · Gold · Macro · live · ME news</div>
     </div>
     <div class="status" id="status">
       <span class="dot wait" id="statusDot"></span>
@@ -232,37 +257,28 @@
     </div>
   </div>
 
-  <section class="prices" id="prices">
-    <div class="card" id="card-bz">
-      <div class="label">Brent (BZ=F)</div>
-      <div class="price" id="price-bz">—</div>
-      <div class="chg flat" id="chg-bz">—</div>
-    </div>
-    <div class="card" id="card-cl">
-      <div class="label">WTI (CL=F)</div>
-      <div class="price" id="price-cl">—</div>
-      <div class="chg flat" id="chg-cl">—</div>
-    </div>
-    <div class="card gold" id="card-gc">
-      <div class="label">Gold (XAUUSD)</div>
-      <div class="price" id="price-gc">—</div>
-      <div class="chg flat" id="chg-gc">—</div>
-    </div>
-  </section>
+  <!-- Markets, grouped: Oil & Gold (hero), Oil ETFs, Macro, Other -->
+  <div class="group">
+    <h3 class="gold">Oil &amp; Gold</h3>
+    <div class="grid-3" id="hero-grid"></div>
+  </div>
+  <div class="group">
+    <h3>Oil ETFs</h3>
+    <div class="grid-2" id="etf-grid"></div>
+  </div>
+  <div class="group">
+    <h3>Macro</h3>
+    <div class="grid-3" id="macro-grid"></div>
+  </div>
+  <div class="group">
+    <h3>Crypto &amp; Shipping</h3>
+    <div class="grid-2" id="other-grid"></div>
+  </div>
 
   <section class="card chart-card">
     <div class="chart-head">
       <div class="title" id="chartTitle">Brent · 1h tape</div>
-      <div class="toggles">
-        <button data-sym="BZ=F" class="active">Brent</button>
-        <button data-sym="CL=F">WTI</button>
-        <button data-sym="GC=F">Gold</button>
-        <span style="width:8px"></span>
-        <button data-range="1h" class="active">1H</button>
-        <button data-range="1d">1D</button>
-        <button data-range="5d">5D</button>
-        <button data-range="1mo">1M</button>
-      </div>
+      <div class="toggles" id="symToggles"></div>
     </div>
     <div class="chart-wrap">
       <canvas id="chart"></canvas>
@@ -281,12 +297,13 @@
         <button data-filter="hi">Impact ≥ 4</button>
       </span>
     </h2>
+    <div class="muted-banner" id="mutedBanner" hidden></div>
     <div id="newsList"></div>
   </section>
 
   <footer>
     Prices refresh every 10&nbsp;sec · news every 60&nbsp;sec · live tape rolls 60&nbsp;min · breaking band keeps items 24&nbsp;h.<br/>
-    Data: CNBC quote API, Google News. Impact 1–5 ranks expected oil-price influence; ± estimates direction (bullish/bearish) and median size.
+    Data: CNBC quote API, Google News. Impact 1–5 + ± direction estimated by Gemini.
   </footer>
 </div>
 
@@ -297,31 +314,46 @@
   const API_PRICES = "/api/prices";
   const API_NEWS = "/api/news";
 
-  const PRICE_INTERVAL = 10 * 1000;            // 10s
-  const NEWS_INTERVAL  = 60 * 1000;            // 60s
-  const TAPE_WINDOW_MS = 60 * 60 * 1000;       // 60 min rolling tape
-  const BREAKING_WINDOW_MS = 24 * 60 * 60 * 1000; // 24h breaking band retention
-  const BREAKING_ROTATE_MS = 8 * 1000;         // band auto-rotates every 8s
+  const PRICE_INTERVAL = 10 * 1000;
+  const NEWS_INTERVAL  = 60 * 1000;
+  const TAPE_WINDOW_MS = 60 * 60 * 1000;
+  const BREAKING_WINDOW_MS = 24 * 60 * 60 * 1000;
+  const BREAKING_ROTATE_MS = 8 * 1000;
   const TAPE_KEY = (sym) => "tape:" + sym;
   const SEEN_KEY = "breaking:seen:v1";
+  const MUTED_KEY = "muted:sources:v1";
 
-  const SYMBOLS = ["BZ=F", "CL=F", "GC=F"];
+  // Ticker definitions, grouped for layout. The order here = visible order.
+  const TICKERS = [
+    // Hero — Oil & Gold
+    { id: "BZ=F",     label: "Brent",       sub: "BZ=F",     hero: true,  group: "hero",  card: "card-bz",   chart: true  },
+    { id: "CL=F",     label: "WTI",         sub: "CL=F",     hero: true,  group: "hero",  card: "card-cl",   chart: true  },
+    { id: "GC=F",     label: "Gold",        sub: "XAUUSD",   hero: true,  group: "hero",  card: "card-gc",   chart: true,  goldLabel: true },
+    // Oil ETFs
+    { id: "BNO",      label: "BNO",         sub: "Brent ETF",          group: "etf",  card: "card-bno"  },
+    { id: "USO",      label: "USO",         sub: "WTI ETF",            group: "etf",  card: "card-uso"  },
+    // Macro
+    { id: "EURUSD=X", label: "EUR/USD",     sub: "FX",                 group: "macro", card: "card-eur" },
+    { id: "NDX",      label: "NDX",         sub: "Nasdaq 100",         group: "macro", card: "card-ndx" },
+    { id: "VIX",      label: "VIX",         sub: "Volatility",         group: "macro", card: "card-vix" },
+    // Other
+    { id: "BTC-USD",  label: "BTC/USD",     sub: "Bitcoin",            group: "other", card: "card-btc" },
+    { id: "BWET",     label: "BWET",        sub: "Dry-bulk shipping",  group: "other", card: "card-bwet" },
+  ];
+  const TICKER_BY_ID = Object.fromEntries(TICKERS.map((t) => [t.id, t]));
+  const ALL_SYMBOLS = TICKERS.map((t) => t.id);
 
   const state = {
     selectedSymbol: "BZ=F",
-    selectedRange: "1h",
     newsFilter: "all",
-    prices: { "BZ=F": null, "CL=F": null, "GC=F": null },
+    prices: Object.fromEntries(TICKERS.map((t) => [t.id, null])),
     chart: null,
     news: [],
     breakingItems: [],
     breakingIdx: 0,
     breakingTimer: null,
-    history: null,           // parsed /data/history.json
-    historyFetchedAt: 0,
+    mutedSources: new Set(loadMuted()),
   };
-
-  const HISTORY_TTL_MS = 5 * 60 * 1000; // cache history fetch for 5 min
 
   const el = (id) => document.getElementById(id);
   const fmt = (n, d = 2) => (n == null || !isFinite(n) ? "—" : n.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d }));
@@ -343,36 +375,49 @@
     if (s < 86400) return Math.floor(s / 3600) + "h ago";
     return Math.floor(s / 86400) + "d ago";
   }
-
   function escapeHtml(s) {
     return (s || "").replace(/[&<>"']/g, (c) =>
       ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])
     );
   }
 
-  // --- "Seen at" persistence for breaking-news 24h retention ---
+  // ---------- Build markets DOM ----------
 
-  function loadSeen() {
-    try {
-      const raw = localStorage.getItem(SEEN_KEY);
-      if (!raw) return {};
-      return JSON.parse(raw) || {};
-    } catch (_) { return {}; }
-  }
-  function saveSeen(map) {
-    try { localStorage.setItem(SEEN_KEY, JSON.stringify(map)); } catch (_) {}
-  }
-  function pruneSeen(map) {
-    const cutoff = Date.now() - BREAKING_WINDOW_MS;
-    let mutated = false;
-    for (const k of Object.keys(map)) {
-      if (map[k] < cutoff) { delete map[k]; mutated = true; }
+  function buildMarkets() {
+    const groups = { hero: el("hero-grid"), etf: el("etf-grid"), macro: el("macro-grid"), other: el("other-grid") };
+    for (const t of TICKERS) {
+      const card = document.createElement("div");
+      const cls = ["card"];
+      if (t.hero) cls.push("hero"); else cls.push("compact");
+      if (t.goldLabel) cls.push("gold");
+      card.className = cls.join(" ");
+      card.id = t.card;
+      card.innerHTML = `
+        <div class="label">${escapeHtml(t.label)}<span style="opacity:0.55;font-weight:400;margin-left:4px">${escapeHtml(t.sub || "")}</span></div>
+        <div class="price" id="price-${t.card}">—</div>
+        <div class="chg flat" id="chg-${t.card}">—</div>`;
+      groups[t.group].appendChild(card);
     }
-    if (mutated) saveSeen(map);
-    return map;
   }
 
-  // --- Tape (rolling localStorage history) ---
+  function buildChartToggles() {
+    const wrap = el("symToggles");
+    for (const t of TICKERS) {
+      const b = document.createElement("button");
+      b.dataset.sym = t.id;
+      if (t.id === state.selectedSymbol) b.classList.add("active");
+      b.textContent = t.label;
+      b.addEventListener("click", () => {
+        wrap.querySelectorAll("button").forEach((x) => x.classList.remove("active"));
+        b.classList.add("active");
+        state.selectedSymbol = t.id;
+        safeRenderChart();
+      });
+      wrap.appendChild(b);
+    }
+  }
+
+  // ---------- Tape (rolling localStorage) ----------
 
   function loadTape(sym) {
     try {
@@ -394,16 +439,65 @@
     try { localStorage.setItem(TAPE_KEY(sym), JSON.stringify(arr)); } catch (_) {}
   }
 
-  // --- Prices ---
+  // ---------- Muted sources ----------
+
+  function loadMuted() {
+    try {
+      const raw = localStorage.getItem(MUTED_KEY);
+      if (!raw) return [];
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr : [];
+    } catch (_) { return []; }
+  }
+  function saveMuted() {
+    try { localStorage.setItem(MUTED_KEY, JSON.stringify([...state.mutedSources])); } catch (_) {}
+  }
+  function muteSource(src) {
+    if (!src) return;
+    state.mutedSources.add(src);
+    saveMuted();
+    renderNews();
+    renderMutedBanner();
+  }
+  function unmuteSource(src) {
+    state.mutedSources.delete(src);
+    saveMuted();
+    renderNews();
+    renderMutedBanner();
+  }
+  function unmuteAll() {
+    state.mutedSources.clear();
+    saveMuted();
+    renderNews();
+    renderMutedBanner();
+  }
+
+  function renderMutedBanner() {
+    const banner = el("mutedBanner");
+    if (!state.mutedSources.size) { banner.hidden = true; return; }
+    banner.hidden = false;
+    const chips = [...state.mutedSources].sort().map((s) =>
+      `<button data-unmute="${escapeHtml(s)}" title="Unmute">🔇 ${escapeHtml(s)} ✕</button>`
+    ).join(" ");
+    banner.innerHTML = `Muted: ${chips} <button id="unmuteAll">Unmute all</button>`;
+    banner.querySelectorAll("[data-unmute]").forEach((b) => {
+      b.addEventListener("click", () => unmuteSource(b.dataset.unmute));
+    });
+    el("unmuteAll")?.addEventListener("click", unmuteAll);
+  }
+
+  // ---------- Prices ----------
 
   async function fetchPrices() {
     try {
-      const results = await Promise.all(SYMBOLS.map((s) =>
-        fetch(API_PRICES + "?symbol=" + encodeURIComponent(s) + "&_=" + Date.now()).then((r) => r.json())
+      const results = await Promise.all(ALL_SYMBOLS.map((s) =>
+        fetch(API_PRICES + "?symbol=" + encodeURIComponent(s) + "&_=" + Date.now())
+          .then((r) => r.json())
+          .catch((e) => ({ error: String(e) }))
       ));
       const now = Date.now();
-      for (let i = 0; i < SYMBOLS.length; i++) {
-        const sym = SYMBOLS[i], p = results[i];
+      for (let i = 0; i < ALL_SYMBOLS.length; i++) {
+        const sym = ALL_SYMBOLS[i], p = results[i];
         if (p && !p.error) {
           state.prices[sym] = p;
           appendTape(sym, p.marketTime || now, p.last);
@@ -421,82 +515,33 @@
   }
 
   function renderPriceCards() {
-    const map = { "BZ=F": "bz", "CL=F": "cl", "GC=F": "gc" };
-    for (const sym of SYMBOLS) {
-      const id = map[sym];
-      const p = state.prices[sym];
+    for (const t of TICKERS) {
+      const p = state.prices[t.id];
       if (!p) continue;
-      el("price-" + id).textContent = (sym === "GC=F" ? "$" : "$") + fmt(p.last);
-      const chgEl = el("chg-" + id);
+      el("price-" + t.card).textContent = "$" + fmt(p.last);
+      const chgEl = el("chg-" + t.card);
       chgEl.textContent = `${fmtSigned(p.change)} (${fmtPct(p.changePct)})`;
       chgEl.className = "chg " + (p.change > 0 ? "up" : p.change < 0 ? "down" : "flat");
     }
   }
 
-  // --- Chart ---
+  // ---------- Chart ----------
 
-  function setupSymToggles() {
-    document.querySelectorAll(".toggles button[data-sym]").forEach((b) => {
-      b.addEventListener("click", () => {
-        document.querySelectorAll(".toggles button[data-sym]").forEach((x) => x.classList.remove("active"));
-        b.classList.add("active");
-        state.selectedSymbol = b.dataset.sym;
-        safeRenderChart();
-      });
-    });
-    document.querySelectorAll(".toggles button[data-range]").forEach((b) => {
-      b.addEventListener("click", async () => {
-        document.querySelectorAll(".toggles button[data-range]").forEach((x) => x.classList.remove("active"));
-        b.classList.add("active");
-        state.selectedRange = b.dataset.range;
-        if (state.selectedRange !== "1h") await ensureHistory();
-        safeRenderChart();
-      });
-    });
-  }
-  function symLabel(sym) {
-    return sym === "BZ=F" ? "Brent" : sym === "CL=F" ? "WTI" : "Gold";
-  }
-  function rangeLabel(r) {
-    return r === "1h" ? "1h tape" : r === "1d" ? "1 day" : r === "5d" ? "5 days" : "1 month";
-  }
-  async function ensureHistory() {
-    const now = Date.now();
-    if (state.history && now - state.historyFetchedAt < HISTORY_TTL_MS) return state.history;
-    try {
-      const r = await fetch("/data/history.json?_=" + now);
-      if (!r.ok) throw new Error("history http " + r.status);
-      state.history = await r.json();
-      state.historyFetchedAt = now;
-    } catch (e) {
-      console.error("history fetch failed", e);
-    }
-    return state.history;
-  }
-  function getChartSeries(sym, range) {
-    if (range === "1h") {
-      return loadTape(sym).map((p) => ({ x: p.t, y: p.c }));
-    }
-    const s = state.history?.symbols?.[sym]?.ranges?.[range];
-    if (!s?.length) return [];
-    return s.map((p) => ({ x: p.t, y: p.c }));
-  }
+  function symLabel(sym) { return TICKER_BY_ID[sym]?.label || sym; }
   function renderChart() {
     const sym = state.selectedSymbol;
-    const range = state.selectedRange;
-    el("chartTitle").textContent = symLabel(sym) + " · " + rangeLabel(range);
-    const points = getChartSeries(sym, range);
+    el("chartTitle").textContent = symLabel(sym) + " · 1h tape";
+    const tape = loadTape(sym);
     const empty = el("chartEmpty");
-    if (!points.length) {
-      empty.textContent = range === "1h"
-        ? "Building live tape… each tick = 10s."
-        : "No history yet — GitHub Action runs every 15 min, first refresh due shortly.";
+    if (!tape.length) {
+      empty.textContent = "Building live tape… each tick = 10s.";
       empty.style.display = "flex";
       if (state.chart) { state.chart.destroy(); state.chart = null; }
       return;
     }
     empty.style.display = "none";
 
+    const points = tape.map((p) => ({ x: p.t, y: p.c }));
     const first = points[0].y, last = points[points.length - 1].y;
     const up = last >= first;
     const color = up ? "#22c55e" : "#ef4444";
@@ -517,25 +562,13 @@
             titleColor: "#8b98a9", bodyColor: "#e6edf3",
             borderColor: "#1f2937", borderWidth: 1,
             callbacks: {
-              title: (items) => {
-                const d = new Date(items[0].parsed.x);
-                return range === "1mo"
-                  ? d.toLocaleDateString([], { month: "short", day: "numeric" })
-                  : range === "1h"
-                  ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
-                  : d.toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
-              },
+              title: (items) => new Date(items[0].parsed.x).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
               label: (item) => "$" + item.parsed.y.toFixed(2),
             },
           },
         },
         scales: {
-          x: {
-            type: "time",
-            time: { displayFormats: { minute: "HH:mm", hour: "HH:mm", day: "MMM d", week: "MMM d" } },
-            grid: { display: false },
-            ticks: { color: "#8b98a9", maxRotation: 0, autoSkip: true, maxTicksLimit: 5, font: { size: 10 } },
-          },
+          x: { type: "time", time: { displayFormats: { minute: "HH:mm", hour: "HH:mm" } }, grid: { display: false }, ticks: { color: "#8b98a9", maxRotation: 0, autoSkip: true, maxTicksLimit: 5, font: { size: 10 } } },
           y: { grid: { color: "rgba(139,152,169,0.08)" }, ticks: { color: "#8b98a9", font: { size: 10 } }, position: "right" },
         },
       },
@@ -543,7 +576,7 @@
   }
   function safeRenderChart() { try { renderChart(); } catch (e) { console.error("chart render failed", e); } }
 
-  // --- News ---
+  // ---------- News ----------
 
   async function fetchNews() {
     try {
@@ -554,33 +587,39 @@
         renderNews();
         renderBreakingBand();
       }
-    } catch (e) {
-      console.error("news failed", e);
-    }
+    } catch (e) { console.error("news failed", e); }
+  }
+
+  function loadSeen() {
+    try { return JSON.parse(localStorage.getItem(SEEN_KEY) || "{}") || {}; }
+    catch (_) { return {}; }
+  }
+  function saveSeen(map) { try { localStorage.setItem(SEEN_KEY, JSON.stringify(map)); } catch (_) {} }
+  function pruneSeen(map) {
+    const cutoff = Date.now() - BREAKING_WINDOW_MS;
+    for (const k of Object.keys(map)) if (map[k] < cutoff) delete map[k];
+    saveSeen(map);
+    return map;
   }
 
   function ingestBreaking(items) {
     const seen = pruneSeen(loadSeen());
     let mutated = false;
     for (const it of items) {
-      if (it.isBreaking && !seen[it.link]) {
-        seen[it.link] = Date.now();
-        mutated = true;
-      }
+      if (it.isBreaking && !seen[it.link]) { seen[it.link] = Date.now(); mutated = true; }
     }
     if (mutated) saveSeen(seen);
-
-    // Build the breaking list: items whose link is in seen[] AND age <= 24h
     const cutoff = Date.now() - BREAKING_WINDOW_MS;
     const known = new Map(items.map((i) => [i.link, i]));
     const list = [];
     for (const link of Object.keys(seen)) {
       if (seen[link] < cutoff) continue;
       const it = known.get(link);
-      if (!it) continue; // item dropped from feed; skip until it returns
+      if (!it) continue;
+      // Don't show muted sources in breaking band either
+      if (state.mutedSources.has(sourceOf(it))) continue;
       list.push({ ...it, _seenAt: seen[link] });
     }
-    // Sort by impact desc, then by seenAt desc
     list.sort((a, b) => (b.impactScore - a.impactScore) || (b._seenAt - a._seenAt));
     state.breakingItems = list;
     if (state.breakingIdx >= list.length) state.breakingIdx = 0;
@@ -588,7 +627,11 @@
 
   function renderBreakingBand() {
     const band = el("breakingBand");
-    if (!state.breakingItems.length) { band.hidden = true; if (state.breakingTimer) { clearInterval(state.breakingTimer); state.breakingTimer = null; } return; }
+    if (!state.breakingItems.length) {
+      band.hidden = true;
+      if (state.breakingTimer) { clearInterval(state.breakingTimer); state.breakingTimer = null; }
+      return;
+    }
     band.hidden = false;
     showBreakingItem(state.breakingIdx);
     if (!state.breakingTimer && state.breakingItems.length > 1) {
@@ -607,25 +650,22 @@
     const src = sourceOf(it);
     el("breakingLink").href = it.link;
     el("breakingSrc").textContent = src;
-    el("breakingAgo").textContent = (it._seenAt ? "first seen " + timeAgo(it._seenAt) : "") + (it.pubDate ? " · " + timeAgo(it.pubDate) : "");
+    let agoText = (it._seenAt ? "first seen " + timeAgo(it._seenAt) : "") +
+                  (it.pubDate ? " · " + timeAgo(it.pubDate) : "");
+    el("breakingAgo").textContent = agoText;
     const imp = el("breakingImpact");
     if (it.impactScore >= 1) {
       imp.className = "impact i" + it.impactScore;
       imp.textContent = it.impactScore + "/5";
       imp.style.display = "inline-flex";
-    } else {
-      imp.style.display = "none";
-    }
+    } else { imp.style.display = "none"; }
     el("breakingTitle").textContent = cleanTitle(it);
     el("breakingCount").textContent = (idx + 1) + "/" + state.breakingItems.length;
-    // Show direction/pct in band too if we have it
-    const dir = it.expectedDirection || 0;
-    const pct = it.expectedPct || 0;
-    const ago = el("breakingAgo");
+    const dir = it.expectedDirection || 0, pct = it.expectedPct || 0;
     if (dir !== 0 && pct > 0) {
       const sign = dir > 0 ? "+" : "−";
       const color = dir > 0 ? "var(--up)" : "var(--down)";
-      ago.innerHTML = ago.textContent + ` <span style="color:${color};font-weight:700">${sign}${pct.toFixed(1)}% oil</span>`;
+      el("breakingAgo").innerHTML = agoText + ` <span style="color:${color};font-weight:700">${sign}${pct.toFixed(1)}% oil</span>`;
     }
   }
 
@@ -670,6 +710,8 @@
     const list = el("newsList");
     list.innerHTML = "";
     let items = state.news;
+    // Drop muted sources first
+    if (state.mutedSources.size) items = items.filter((i) => !state.mutedSources.has(sourceOf(i)));
     if (state.newsFilter === "breaking") items = items.filter((i) => i.category === "breaking" || i.isBreaking);
     if (state.newsFilter === "trump") items = items.filter((i) => i.isTrump);
     if (state.newsFilter === "oil") items = items.filter((i) => i.oilImpact);
@@ -691,19 +733,18 @@
       const ago = timeAgo(item.pubDate);
       const score = item.impactScore || 0;
       const impactBadge = score >= 1
-        ? `<span class="impact i${score}" title="Oil-impact score (1-5)">${score}/5</span>`
-        : "";
+        ? `<span class="impact i${score}" title="Oil-impact score (1-5)">${score}/5</span>` : "";
       const trumpBadge = item.isTrump ? '<span class="tag trump">Trump</span>' : "";
       const cat = item.category || "reposted";
       const catBadge = `<span class="cat ${cat}">${cat}</span>`;
-      const dir = item.expectedDirection || 0;
-      const pct = item.expectedPct || 0;
+      const dir = item.expectedDirection || 0, pct = item.expectedPct || 0;
       let moveBadge = "";
       if (dir !== 0 && pct > 0) {
         const cls = dir > 0 ? "up" : "down";
         const sign = dir > 0 ? "+" : "−";
         moveBadge = `<span class="move ${cls}" title="Expected oil-price move">${sign}${pct.toFixed(1)}%</span>`;
       }
+      const muteBtn = src ? `<button class="mute-btn" data-mute="${escapeHtml(src)}" title="Mute ${escapeHtml(src)}">🔇</button>` : "";
       a.innerHTML = `
         <div class="top">
           <span class="src">${escapeHtml(src)}</span>
@@ -712,28 +753,30 @@
           ${trumpBadge}
           ${impactBadge}
           ${moveBadge}
+          ${muteBtn}
         </div>
         <h3>${escapeHtml(cleanTitle(item))}</h3>`;
+      const mb = a.querySelector(".mute-btn");
+      if (mb) mb.addEventListener("click", (e) => {
+        e.preventDefault(); e.stopPropagation();
+        muteSource(mb.dataset.mute);
+      });
       list.appendChild(a);
     }
   }
 
   async function boot() {
-    setupSymToggles();
+    buildMarkets();
+    buildChartToggles();
     setupFilterToggles();
+    renderMutedBanner();
     setStatus("wait", "loading…");
     safeRenderChart();
-    await Promise.all([fetchPrices(), fetchNews(), ensureHistory()]);
+    await Promise.all([fetchPrices(), fetchNews()]);
     setInterval(fetchPrices, PRICE_INTERVAL);
     setInterval(fetchNews, NEWS_INTERVAL);
-    // Refresh history every 5 min (picks up the Action's latest push)
-    setInterval(() => { ensureHistory().then(() => { if (state.selectedRange !== "1h") safeRenderChart(); }); }, 5 * 60 * 1000);
     document.addEventListener("visibilitychange", () => {
-      if (!document.hidden) {
-        fetchPrices();
-        fetchNews();
-        if (state.selectedRange !== "1h") ensureHistory().then(() => safeRenderChart());
-      }
+      if (!document.hidden) { fetchPrices(); fetchNews(); }
     });
   }
 
