@@ -57,7 +57,9 @@ async function fetchGoogleNews(q) {
 
 // ----------------- Gemini scoring -----------------
 
-const GEMINI_MODEL = "gemini-2.0-flash";
+// Try newer model first (more generous free-tier quota), fall back to 2.0 if it's not available.
+const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash"];
+const GEMINI_BATCH_LIMIT = 50; // Score at most 50 (newest) items per request to stay within free-tier quotas.
 
 function buildPrompt(items) {
   const lines = items.map((it, i) => {
@@ -87,15 +89,11 @@ Headlines:
 ${lines}`;
 }
 
-async function scoreWithGemini(items, apiKey, diag) {
-  if (!items.length) return [];
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`;
+async function callGemini(model, items, apiKey, diag) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
   const body = {
     contents: [{ parts: [{ text: buildPrompt(items) }] }],
-    generationConfig: {
-      responseMimeType: "application/json",
-      temperature: 0.2,
-    },
+    generationConfig: { responseMimeType: "application/json", temperature: 0.2 },
   };
   try {
     const r = await fetch(url, {
@@ -103,30 +101,53 @@ async function scoreWithGemini(items, apiKey, diag) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    diag.push({ src: "gemini", status: r.status, items: items.length });
+    diag.push({ src: "gemini", model, status: r.status, items: items.length });
     if (!r.ok) {
       const text = await r.text();
-      diag.push({ src: "gemini", err: text.slice(0, 200) });
-      return null;
+      diag.push({ src: "gemini", model, err: text.slice(0, 180) });
+      return { ok: false, status: r.status };
     }
     const data = await r.json();
     const txt = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
     let parsed;
     try { parsed = JSON.parse(txt); }
-    catch (e) {
-      // Attempt to extract a JSON array if the model added prose
+    catch (_) {
       const m = txt.match(/\[[\s\S]*\]/);
-      if (m) try { parsed = JSON.parse(m[0]); } catch (_) {}
+      if (m) try { parsed = JSON.parse(m[0]); } catch (__) {}
     }
     if (!Array.isArray(parsed)) {
-      diag.push({ src: "gemini", err: "non-array response", sample: txt.slice(0, 200) });
-      return null;
+      diag.push({ src: "gemini", model, err: "non-array response", sample: txt.slice(0, 180) });
+      return { ok: false, status: 500 };
     }
-    return parsed;
+    return { ok: true, parsed };
   } catch (e) {
-    diag.push({ src: "gemini", err: String(e) });
-    return null;
+    diag.push({ src: "gemini", model, err: String(e) });
+    return { ok: false, status: 0 };
   }
+}
+
+async function scoreWithGemini(items, apiKey, diag) {
+  if (!items.length) return [];
+  // Sort by recency so the top N (most actionable) get Gemini treatment
+  const sorted = items
+    .map((it, idx) => ({ it, idx, t: Date.parse(it.pubDate) || 0 }))
+    .sort((a, b) => b.t - a.t);
+  const picked = sorted.slice(0, GEMINI_BATCH_LIMIT);
+  const batchItems = picked.map((p) => p.it);
+
+  for (const model of GEMINI_MODELS) {
+    const res = await callGemini(model, batchItems, apiKey, diag);
+    if (res.ok) {
+      // Remap the batch indexes back to original indexes
+      return res.parsed.map((s) => {
+        if (s == null || typeof s.i !== "number") return s;
+        const orig = picked[s.i];
+        return orig ? { ...s, i: orig.idx } : s;
+      });
+    }
+    // If 429 or 403, try next model; any other error also tries next
+  }
+  return null;
 }
 
 // ----------------- Keyword fallback -----------------
@@ -197,6 +218,11 @@ export default async function handler(req, res) {
   res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=180");
   const debug = "debug" in req.query;
   const diag = [];
+  // Cache buster for testing: ?bustcache=1 drops the in-memory score cache so the next batch hits Gemini fresh
+  if (req.query.bustcache) {
+    diag.push({ src: "cache", note: "cleared", prevSize: scoreCache.size });
+    scoreCache.clear();
+  }
 
   try {
     const [general, oil, trump] = await Promise.all([
