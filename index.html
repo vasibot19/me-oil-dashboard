@@ -11,7 +11,6 @@
   :root {
     --bg: #0b0f14;
     --panel: #121821;
-    --panel-2: #0f141c;
     --border: #1f2937;
     --text: #e6edf3;
     --muted: #8b98a9;
@@ -21,6 +20,11 @@
     --tag-oil-bg: rgba(242, 178, 51, 0.14);
     --tag-oil-fg: #f2b233;
     --tag-oil-border: rgba(242, 178, 51, 0.35);
+    --imp-1: #4b5563;
+    --imp-2: #2563eb;
+    --imp-3: #f59e0b;
+    --imp-4: #f97316;
+    --imp-5: #ef4444;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
@@ -29,204 +33,95 @@
     -webkit-font-smoothing: antialiased;
     padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   }
-  .wrap {
-    max-width: 760px;
-    margin: 0 auto;
-    padding: 16px 14px 40px;
-  }
-  header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 14px;
-  }
-  header h1 {
-    font-size: 16px;
-    margin: 0;
-    letter-spacing: 0.02em;
-    color: var(--text);
-    font-weight: 600;
-  }
-  header .sub {
-    font-size: 11px;
-    color: var(--muted);
-  }
-  .status {
-    font-size: 11px;
-    color: var(--muted);
-    display: flex;
-    gap: 10px;
-    align-items: center;
-  }
-  .dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: var(--up);
-    box-shadow: 0 0 6px rgba(34, 197, 94, 0.6);
-  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 16px 14px 40px; }
+  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  header h1 { font-size: 16px; margin: 0; letter-spacing: 0.02em; font-weight: 600; }
+  header .sub { font-size: 11px; color: var(--muted); }
+  .status { font-size: 11px; color: var(--muted); display: flex; gap: 10px; align-items: center; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--up); box-shadow: 0 0 6px rgba(34, 197, 94, 0.6); }
   .dot.err { background: var(--down); box-shadow: 0 0 6px rgba(239, 68, 68, 0.6); }
   .dot.wait { background: var(--muted); box-shadow: none; }
 
-  .prices {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 12px;
-  }
-  .card {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 14px 14px 12px;
-  }
-  .card .label {
-    font-size: 11px;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-  }
-  .card .price {
-    font-size: 28px;
-    font-weight: 700;
-    margin-top: 4px;
-    font-variant-numeric: tabular-nums;
-    letter-spacing: -0.01em;
-  }
-  .card .chg {
-    font-size: 13px;
-    margin-top: 2px;
-    font-variant-numeric: tabular-nums;
-  }
+  .prices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 14px 14px 12px; }
+  .card .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  .card .price { font-size: 28px; font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  .card .chg { font-size: 13px; margin-top: 2px; font-variant-numeric: tabular-nums; }
   .chg.up { color: var(--up); }
   .chg.down { color: var(--down); }
   .chg.flat { color: var(--muted); }
 
-  .chart-card {
-    padding: 12px 10px 8px;
-  }
-  .chart-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 2px 4px 8px;
-  }
-  .chart-head .title {
-    font-size: 12px;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-  }
+  .chart-card { padding: 12px 10px 8px; }
+  .chart-head { display: flex; justify-content: space-between; align-items: center; padding: 2px 4px 8px; }
+  .chart-head .title { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
   .toggles { display: flex; gap: 6px; }
   .toggles button {
-    background: transparent;
-    color: var(--muted);
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    padding: 4px 10px;
-    font-size: 11px;
-    cursor: pointer;
+    background: transparent; color: var(--muted);
+    border: 1px solid var(--border); border-radius: 999px;
+    padding: 4px 10px; font-size: 11px; cursor: pointer;
   }
-  .toggles button.active {
-    background: var(--text);
-    color: var(--bg);
-    border-color: var(--text);
-  }
+  .toggles button.active { background: var(--text); color: var(--bg); border-color: var(--text); }
   .chart-wrap { position: relative; height: 180px; }
-
-  .news {
-    margin-top: 14px;
+  .chart-empty {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    color: var(--muted); font-size: 12px; pointer-events: none;
   }
+
+  .news { margin-top: 14px; }
   .news h2 {
-    font-size: 12px;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin: 18px 4px 8px;
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
+    font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em;
+    margin: 18px 4px 8px; display: flex; justify-content: space-between; align-items: baseline;
   }
   .news .filter { display: flex; gap: 6px; }
   .news .filter button {
-    background: transparent;
-    color: var(--muted);
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    padding: 3px 10px;
-    font-size: 11px;
-    cursor: pointer;
-    text-transform: none;
-    letter-spacing: 0;
+    background: transparent; color: var(--muted);
+    border: 1px solid var(--border); border-radius: 999px;
+    padding: 3px 10px; font-size: 11px; cursor: pointer;
+    text-transform: none; letter-spacing: 0;
   }
-  .news .filter button.active {
-    background: var(--text);
-    color: var(--bg);
-    border-color: var(--text);
-  }
+  .news .filter button.active { background: var(--text); color: var(--bg); border-color: var(--text); }
   .item {
-    display: block;
-    padding: 12px 14px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background: var(--panel);
-    margin-bottom: 8px;
-    text-decoration: none;
-    color: inherit;
+    display: block; padding: 12px 14px;
+    border: 1px solid var(--border); border-radius: 12px;
+    background: var(--panel); margin-bottom: 8px;
+    text-decoration: none; color: inherit;
   }
   .item.oil {
     background: linear-gradient(180deg, rgba(242,178,51,0.05), transparent 60%), var(--panel);
     border-color: var(--tag-oil-border);
   }
   .item .top {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    margin-bottom: 6px;
-    font-size: 11px;
-    color: var(--muted);
+    display: flex; gap: 8px; align-items: center; margin-bottom: 6px;
+    font-size: 11px; color: var(--muted); flex-wrap: wrap;
   }
-  .item .src {
-    font-weight: 600;
-    color: var(--text);
-    opacity: 0.85;
-  }
+  .item .src { font-weight: 600; color: var(--text); opacity: 0.85; }
   .tag {
-    font-size: 10px;
-    padding: 2px 7px;
-    border-radius: 999px;
-    border: 1px solid var(--tag-oil-border);
-    background: var(--tag-oil-bg);
-    color: var(--tag-oil-fg);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
+    font-size: 10px; padding: 2px 7px; border-radius: 999px;
+    border: 1px solid var(--tag-oil-border); background: var(--tag-oil-bg); color: var(--tag-oil-fg);
+    text-transform: uppercase; letter-spacing: 0.08em;
   }
-  .item h3 {
-    font-size: 14px;
-    font-weight: 500;
-    margin: 0;
-    line-height: 1.35;
-    color: var(--text);
+  .impact {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 10px; padding: 2px 7px; border-radius: 999px;
+    color: white; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.08em;
   }
+  .impact.i1 { background: var(--imp-1); }
+  .impact.i2 { background: var(--imp-2); }
+  .impact.i3 { background: var(--imp-3); color: #1a1a1a; }
+  .impact.i4 { background: var(--imp-4); }
+  .impact.i5 { background: var(--imp-5); }
+  .item h3 { font-size: 14px; font-weight: 500; margin: 0; line-height: 1.35; }
   .item:active h3 { opacity: 0.7; }
 
   .empty {
-    padding: 20px;
-    text-align: center;
-    color: var(--muted);
-    border: 1px dashed var(--border);
-    border-radius: 12px;
+    padding: 20px; text-align: center; color: var(--muted);
+    border: 1px dashed var(--border); border-radius: 12px;
   }
 
-  footer {
-    margin-top: 22px;
-    text-align: center;
-    color: var(--muted);
-    font-size: 11px;
-  }
-  footer a { color: var(--muted); }
+  footer { margin-top: 22px; text-align: center; color: var(--muted); font-size: 11px; line-height: 1.4; }
 
-  @media (max-width: 420px) {
-    .card .price { font-size: 24px; }
-  }
+  @media (max-width: 420px) { .card .price { font-size: 24px; } }
 </style>
 </head>
 <body>
@@ -257,17 +152,16 @@
 
   <section class="card chart-card">
     <div class="chart-head">
-      <div class="title" id="chartTitle">Brent · 1D</div>
+      <div class="title" id="chartTitle">Brent · live tape</div>
       <div class="toggles">
         <button data-sym="BZ=F" class="active">Brent</button>
         <button data-sym="CL=F">WTI</button>
-        <span style="width:8px"></span>
-        <button data-range="1d" class="active">1D</button>
-        <button data-range="5d">5D</button>
-        <button data-range="1mo">1M</button>
       </div>
     </div>
-    <div class="chart-wrap"><canvas id="chart"></canvas></div>
+    <div class="chart-wrap">
+      <canvas id="chart"></canvas>
+      <div class="chart-empty" id="chartEmpty">Building live tape… each tick = 10s.</div>
+    </div>
   </section>
 
   <section class="news">
@@ -276,13 +170,15 @@
       <span class="filter">
         <button data-filter="all" class="active">All</button>
         <button data-filter="oil">Oil-impact</button>
+        <button data-filter="hi">Impact ≥ 4</button>
       </span>
     </h2>
     <div id="newsList"></div>
   </section>
 
   <footer>
-    Auto-refresh: prices every 2&nbsp;min · news every 5&nbsp;min. Data: Yahoo Finance, Google News.
+    Prices refresh every 10&nbsp;sec · news every 60&nbsp;sec · live tape rolls 60&nbsp;min.<br/>
+    Data: CNBC quote API, Google News. Impact 1–5 ranks expected oil-price influence.
   </footer>
 </div>
 
@@ -292,15 +188,15 @@
   const API_PRICES = "/api/prices";
   const API_NEWS = "/api/news";
 
-  const PRICE_INTERVAL = 2 * 60 * 1000;
-  const NEWS_INTERVAL = 5 * 60 * 1000;
+  const PRICE_INTERVAL = 10 * 1000;       // 10s
+  const NEWS_INTERVAL  = 60 * 1000;       // 60s
+  const TAPE_WINDOW_MS = 60 * 60 * 1000;  // keep last 60 min of snapshots
+  const TAPE_KEY = (sym) => "tape:" + sym;
 
   const state = {
     selectedSymbol: "BZ=F",
-    selectedRange: "1d",
     newsFilter: "all",
     prices: { "BZ=F": null, "CL=F": null },
-    chartData: null,
     chart: null,
     news: [],
   };
@@ -316,16 +212,55 @@
     el("statusText").textContent = text;
   }
 
+  // --- Tape (rolling localStorage history) ---
+
+  function loadTape(sym) {
+    try {
+      const raw = localStorage.getItem(TAPE_KEY(sym));
+      if (!raw) return [];
+      const arr = JSON.parse(raw);
+      if (!Array.isArray(arr)) return [];
+      const cutoff = Date.now() - TAPE_WINDOW_MS;
+      return arr.filter((p) => p && typeof p.t === "number" && typeof p.c === "number" && p.t >= cutoff);
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function appendTape(sym, t, c) {
+    if (c == null || !isFinite(c)) return;
+    const arr = loadTape(sym);
+    // Dedup: skip if last point is same minute and same price
+    const last = arr[arr.length - 1];
+    if (last && Math.abs(t - last.t) < 1000) return;
+    arr.push({ t, c });
+    // Cap size
+    while (arr.length > 800) arr.shift();
+    try {
+      localStorage.setItem(TAPE_KEY(sym), JSON.stringify(arr));
+    } catch (_) {}
+  }
+
+  // --- Prices ---
+
   async function fetchPrices() {
     try {
       const [bz, cl] = await Promise.all([
-        fetch(API_PRICES + "?symbol=BZ%3DF&range=1d").then((r) => r.json()),
-        fetch(API_PRICES + "?symbol=CL%3DF&range=1d").then((r) => r.json()),
+        fetch(API_PRICES + "?symbol=BZ%3DF&_=" + Date.now()).then((r) => r.json()),
+        fetch(API_PRICES + "?symbol=CL%3DF&_=" + Date.now()).then((r) => r.json()),
       ]);
-      if (bz && !bz.error) state.prices["BZ=F"] = bz;
-      if (cl && !cl.error) state.prices["CL=F"] = cl;
+      const now = Date.now();
+      if (bz && !bz.error) {
+        state.prices["BZ=F"] = bz;
+        appendTape("BZ=F", bz.marketTime || now, bz.last);
+      }
+      if (cl && !cl.error) {
+        state.prices["CL=F"] = cl;
+        appendTape("CL=F", cl.marketTime || now, cl.last);
+      }
       renderPriceCards();
-      setStatus("ok", "updated " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+      renderChart();
+      setStatus("ok", "updated " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
       return true;
     } catch (e) {
       console.error("prices failed", e);
@@ -346,28 +281,34 @@
     }
   }
 
-  async function fetchChart() {
-    const sym = state.selectedSymbol;
-    const range = state.selectedRange;
-    el("chartTitle").textContent =
-      (sym === "BZ=F" ? "Brent" : "WTI") + " · " + range.toUpperCase();
-    try {
-      const url = `${API_PRICES}?symbol=${encodeURIComponent(sym)}&range=${encodeURIComponent(range)}`;
-      const data = await fetch(url).then((r) => r.json());
-      if (data && !data.error) {
-        state.chartData = data;
+  // --- Chart (renders from localStorage tape) ---
+
+  function setupSymToggles() {
+    document.querySelectorAll(".toggles button[data-sym]").forEach((b) => {
+      b.addEventListener("click", () => {
+        document.querySelectorAll(".toggles button[data-sym]").forEach((x) => x.classList.remove("active"));
+        b.classList.add("active");
+        state.selectedSymbol = b.dataset.sym;
         renderChart();
-      }
-    } catch (e) {
-      console.error("chart failed", e);
-    }
+      });
+    });
   }
 
   function renderChart() {
-    const data = state.chartData;
-    if (!data || !data.series) return;
-    const points = data.series.map((p) => ({ x: p.t, y: p.c }));
-    const up = data.change >= 0;
+    const sym = state.selectedSymbol;
+    el("chartTitle").textContent = (sym === "BZ=F" ? "Brent" : "WTI") + " · live tape";
+    const tape = loadTape(sym);
+    const empty = el("chartEmpty");
+    if (!tape.length) {
+      empty.style.display = "flex";
+      if (state.chart) { state.chart.destroy(); state.chart = null; }
+      return;
+    }
+    empty.style.display = "none";
+
+    const points = tape.map((p) => ({ x: p.t, y: p.c }));
+    const first = points[0].y, last = points[points.length - 1].y;
+    const up = last >= first;
     const color = up ? "#22c55e" : "#ef4444";
     const bg = up ? "rgba(34,197,94,0.14)" : "rgba(239,68,68,0.14)";
 
@@ -376,42 +317,23 @@
     state.chart = new Chart(ctx, {
       type: "line",
       data: {
-        datasets: [
-          {
-            data: points,
-            borderColor: color,
-            backgroundColor: bg,
-            borderWidth: 2,
-            pointRadius: 0,
-            tension: 0.25,
-            fill: "origin",
-          },
-        ],
+        datasets: [{
+          data: points,
+          borderColor: color, backgroundColor: bg, borderWidth: 2,
+          pointRadius: 0, tension: 0.25, fill: "origin",
+        }],
       },
       options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: false,
+        responsive: true, maintainAspectRatio: false, animation: false,
         interaction: { mode: "nearest", intersect: false },
         plugins: {
           legend: { display: false },
           tooltip: {
-            displayColors: false,
-            backgroundColor: "#111827",
-            titleColor: "#8b98a9",
-            bodyColor: "#e6edf3",
-            borderColor: "#1f2937",
-            borderWidth: 1,
+            displayColors: false, backgroundColor: "#111827",
+            titleColor: "#8b98a9", bodyColor: "#e6edf3",
+            borderColor: "#1f2937", borderWidth: 1,
             callbacks: {
-              title: (items) => {
-                const t = items[0].parsed.x;
-                return new Date(t).toLocaleString([], {
-                  month: "short",
-                  day: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                });
-              },
+              title: (items) => new Date(items[0].parsed.x).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
               label: (item) => "$" + item.parsed.y.toFixed(2),
             },
           },
@@ -419,6 +341,7 @@
         scales: {
           x: {
             type: "time",
+            time: { displayFormats: { minute: "HH:mm", hour: "HH:mm" } },
             grid: { display: false },
             ticks: { color: "#8b98a9", maxRotation: 0, autoSkip: true, maxTicksLimit: 5, font: { size: 10 } },
           },
@@ -432,36 +355,11 @@
     });
   }
 
-  function setupToggles() {
-    document.querySelectorAll(".toggles button[data-sym]").forEach((b) => {
-      b.addEventListener("click", () => {
-        document.querySelectorAll(".toggles button[data-sym]").forEach((x) => x.classList.remove("active"));
-        b.classList.add("active");
-        state.selectedSymbol = b.dataset.sym;
-        fetchChart();
-      });
-    });
-    document.querySelectorAll(".toggles button[data-range]").forEach((b) => {
-      b.addEventListener("click", () => {
-        document.querySelectorAll(".toggles button[data-range]").forEach((x) => x.classList.remove("active"));
-        b.classList.add("active");
-        state.selectedRange = b.dataset.range;
-        fetchChart();
-      });
-    });
-    document.querySelectorAll(".news .filter button").forEach((b) => {
-      b.addEventListener("click", () => {
-        document.querySelectorAll(".news .filter button").forEach((x) => x.classList.remove("active"));
-        b.classList.add("active");
-        state.newsFilter = b.dataset.filter;
-        renderNews();
-      });
-    });
-  }
+  // --- News ---
 
   async function fetchNews() {
     try {
-      const data = await fetch(API_NEWS).then((r) => r.json());
+      const data = await fetch(API_NEWS + "?_=" + Date.now()).then((r) => r.json());
       if (data && data.items) {
         state.news = data.items;
         renderNews();
@@ -483,7 +381,6 @@
 
   function sourceOf(item) {
     if (item.source) return item.source;
-    // Google News titles often end with " - Source Name"
     const m = /\s-\s([^-]+)$/.exec(item.title);
     return m ? m[1].trim() : "";
   }
@@ -496,16 +393,28 @@
     return item.title;
   }
 
+  function setupFilterToggles() {
+    document.querySelectorAll(".news .filter button").forEach((b) => {
+      b.addEventListener("click", () => {
+        document.querySelectorAll(".news .filter button").forEach((x) => x.classList.remove("active"));
+        b.classList.add("active");
+        state.newsFilter = b.dataset.filter;
+        renderNews();
+      });
+    });
+  }
+
   function renderNews() {
     const list = el("newsList");
     list.innerHTML = "";
-    const filtered =
-      state.newsFilter === "oil" ? state.news.filter((i) => i.oilImpact) : state.news;
-    if (!filtered.length) {
-      list.innerHTML = '<div class="empty">No items yet.</div>';
+    let items = state.news;
+    if (state.newsFilter === "oil") items = items.filter((i) => i.oilImpact);
+    if (state.newsFilter === "hi") items = items.filter((i) => (i.impactScore || 0) >= 4);
+    if (!items.length) {
+      list.innerHTML = '<div class="empty">No items match.</div>';
       return;
     }
-    for (const item of filtered.slice(0, 40)) {
+    for (const item of items.slice(0, 50)) {
       const a = document.createElement("a");
       a.href = item.link;
       a.target = "_blank";
@@ -513,11 +422,15 @@
       a.className = "item" + (item.oilImpact ? " oil" : "");
       const src = sourceOf(item);
       const ago = timeAgo(item.pubDate);
+      const score = item.impactScore || 0;
+      const impactBadge = score >= 1
+        ? `<span class="impact i${score}" title="Oil-impact score">${score}/5</span>`
+        : "";
       a.innerHTML = `
         <div class="top">
           <span class="src">${escapeHtml(src)}</span>
           ${ago ? `<span>· ${ago}</span>` : ""}
-          ${item.oilImpact ? '<span class="tag">oil</span>' : ""}
+          ${impactBadge}
         </div>
         <h3>${escapeHtml(cleanTitle(item))}</h3>`;
       list.appendChild(a);
@@ -531,19 +444,16 @@
   }
 
   async function boot() {
-    setupToggles();
+    setupSymToggles();
+    setupFilterToggles();
     setStatus("wait", "loading…");
-    await Promise.all([fetchPrices(), fetchChart(), fetchNews()]);
-    setInterval(async () => {
-      await fetchPrices();
-      await fetchChart();
-    }, PRICE_INTERVAL);
+    renderChart(); // shows existing tape if any
+    await Promise.all([fetchPrices(), fetchNews()]);
+    setInterval(fetchPrices, PRICE_INTERVAL);
     setInterval(fetchNews, NEWS_INTERVAL);
-    // Refresh when tab becomes visible
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden) {
         fetchPrices();
-        fetchChart();
         fetchNews();
       }
     });
